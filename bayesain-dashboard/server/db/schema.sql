@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS tickers (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   symbol TEXT UNIQUE NOT NULL,
   company_name TEXT,
   is_core INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS ticker_data (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   symbol TEXT NOT NULL,
   date TEXT NOT NULL,
   price REAL,
@@ -20,32 +20,31 @@ CREATE TABLE IF NOT EXISTS ticker_data (
   ppl_mode REAL,
   ppl_high REAL,
   sigma REAL DEFAULT 0.018,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(symbol, date)
 );
 
 CREATE TABLE IF NOT EXISTS charts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   symbol TEXT NOT NULL,
   date TEXT NOT NULL,
   chart_2d_path TEXT,
   chart_3d_path TEXT,
   sigma REAL,
-  generated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS posts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id SERIAL PRIMARY KEY,
   symbol TEXT NOT NULL,
   date TEXT NOT NULL,
   tweet_text TEXT,
   chart_id INTEGER,
   status TEXT DEFAULT 'draft',
   posted_by TEXT,
-  posted_at DATETIME,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(symbol, date),
-  FOREIGN KEY (chart_id) REFERENCES charts(id)
+  posted_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(symbol, date)
 );
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -53,7 +52,7 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT
 );
 
-INSERT OR IGNORE INTO tickers (symbol, company_name, is_core) VALUES
+INSERT INTO tickers (symbol, company_name, is_core) VALUES
   ('SPY',  'SPDR S&P 500 ETF Trust', 1),
   ('QQQ',  'Invesco QQQ Trust (Nasdaq-100)', 1),
   ('SMH',  'VanEck Semiconductor ETF', 1),
@@ -68,10 +67,12 @@ INSERT OR IGNORE INTO tickers (symbol, company_name, is_core) VALUES
   ('XLF',  'Financial Select Sector SPDR Fund', 1),
   ('GDX',  'VanEck Gold Miners ETF', 1),
   ('MSTR', 'MicroStrategy Incorporated', 1),
-  ('ARKK', 'ARK Innovation ETF', 1);
+  ('ARKK', 'ARK Innovation ETF', 1)
+ON CONFLICT DO NOTHING;
 
-INSERT OR IGNORE INTO settings VALUES
+INSERT INTO settings VALUES
   ('team_members', '["Luke","Lucas","Team Member 3","Team Member 4"]'),
   ('posts_per_day', '3'),
   ('adanos_api_key', ''),
-  ('google_sheets_id', '');
+  ('google_sheets_id', '')
+ON CONFLICT DO NOTHING;

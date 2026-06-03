@@ -1,27 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/db');
+const { sql } = require('../db/db');
 
-router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT key, value FROM settings').all();
-  const result = {};
-  rows.forEach(r => {
-    try { result[r.key] = JSON.parse(r.value); }
-    catch { result[r.key] = r.value; }
-  });
-  res.json(result);
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await sql`SELECT key, value FROM settings`;
+    const result = {};
+    rows.forEach(r => {
+      try { result[r.key] = JSON.parse(r.value); }
+      catch { result[r.key] = r.value; }
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.put('/', (req, res) => {
-  const updates = req.body;
-  const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-  const txn = db.transaction(obj => {
-    for (const [k, v] of Object.entries(obj)) {
-      upsert.run(k, typeof v === 'string' ? v : JSON.stringify(v));
+router.put('/', async (req, res) => {
+  try {
+    const updates = req.body;
+    for (const [k, v] of Object.entries(updates)) {
+      const val = typeof v === 'string' ? v : JSON.stringify(v);
+      await sql`INSERT INTO settings (key, value) VALUES (${k}, ${val}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
     }
-  });
-  txn(updates);
-  res.json({ ok: true });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

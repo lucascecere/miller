@@ -19,10 +19,16 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     setGenerating(true);
     setGenError('');
     try {
-      await post(`/api/charts/generate/${ticker.symbol}`);
+      const result = await post(`/api/charts/generate/${ticker.symbol}`);
+      if (result.mode === 'manual') {
+        // Show the values to enter, open chart tool
+        const vals = `S0: ${ticker.price?.toFixed(2)} | Low: ${ticker.ppl_low?.toFixed(2)} | Mode: ${ticker.ppl_mode?.toFixed(2)} | High: ${ticker.ppl_high?.toFixed(2)}`;
+        setGenError(`Chart tool opened — enter these values: ${vals}`);
+        window.open('/bayesain.html', '_blank');
+      }
       if (onChartGenerated) onChartGenerated();
     } catch (err) {
-      setGenError(err.message.slice(0, 80));
+      setGenError(err.message.slice(0, 120));
     } finally {
       setGenerating(false);
     }
@@ -94,7 +100,7 @@ export default function TickerCard({ ticker, onChartGenerated }) {
               onMouseOver={e=>{if(!generating){e.target.style.borderColor='#7DF9FF';e.target.style.color='#7DF9FF';}}}
               onMouseOut={e=>{e.target.style.borderColor='rgba(255,255,255,0.2)';e.target.style.color='#c8cad8';}}
             >
-              {generating ? 'Generating…' : 'Gen Chart'}
+              {generating ? 'Opening…' : 'Open Chart'}
             </button>
             <button
               onClick={() => navigate(`/post/${ticker.symbol}`)}
@@ -105,7 +111,12 @@ export default function TickerCard({ ticker, onChartGenerated }) {
               View
             </button>
           </div>
-          {genError && <p style={{color:'#f87171',fontSize:'0.65rem',fontFamily:'monospace',maxWidth:'140px',textAlign:'right'}}>{genError}</p>}
+          {genError && (
+            <p style={{
+              color: genError.startsWith('Chart tool') ? '#7DF9FF' : '#f87171',
+              fontSize:'0.65rem', fontFamily:'monospace', maxWidth:'140px', textAlign:'right'
+            }}>{genError}</p>
+          )}
         </div>
 
       </div>

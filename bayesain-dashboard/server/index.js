@@ -1,59 +1,77 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 
-const SQLiteStore = require('connect-sqlite3')(session);
-const db = require('./db/db');
+const { initDb } = require('./db/db');
 
 const authRoutes     = require('./routes/auth');
 const tickerRoutes   = require('./routes/tickers');
 const chartRoutes    = require('./routes/charts');
 const postRoutes     = require('./routes/posts');
 const settingsRoutes = require('./routes/settings');
-const { initScheduler } = require('./jobs/scheduler');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3004;
+const JWT_SECRET = process.env.JWT_SECRET || 'bayesain-dev-secret';
+const COOKIE_NAME = 'bayesain_token';
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
-
-app.use(session({
-  store: new SQLiteStore({ db: 'sessions.db', dir: './data' }),
-  secret: process.env.SESSION_SECRET || 'bayesain-dev-secret-change-me',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax' }
-}));
+app.use(cookieParser());
 
 function requireAuth(req, res, next) {
-  if (req.session && req.session.authenticated) return next();
-  return res.status(401).json({ error: 'Not authenticated' });
+  const token = req.cookies && req.cookies[COOKIE_NAME];
+  if (!token) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
 }
 
+// Auth routes (no middleware)
 app.use('/api', authRoutes);
+
+// Protected API routes
 app.use('/api/tickers',  requireAuth, tickerRoutes);
 app.use('/api/charts',   requireAuth, chartRoutes);
 app.use('/api/posts',    requireAuth, postRoutes);
 app.use('/api/settings', requireAuth, settingsRoutes);
 
+// Static: public/ (bayesain.html, generated charts)
 app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.static(path.join(__dirname, '../client/dist')));
 
+// Static: built React app
+const clientDist = path.join(__dirname, '../public/app');
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+}
+
+// SPA fallback
 app.get('*', (req, res) => {
-  const clientBuild = path.join(__dirname, '../client/dist/index.html');
-  if (fs.existsSync(clientBuild)) {
-    res.sendFile(clientBuild);
+  const index = path.join(__dirname, '../public/app/index.html');
+  if (fs.existsSync(index)) {
+    res.sendFile(index);
   } else {
-    res.send('<h1>BayesAIn Dashboard</h1><p>Build the client: <code>npm run build:client</code></p>');
+    res.send('<h1>BayesAIn Dashboard</h1><p>Run <code>npm run build</code> to build the client.</p>');
   }
 });
 
-initScheduler({ db });
+// Init DB then start server (only when running directly, not when imported by Vercel)
+if (require.main === module) {
+  initDb().then(() => {
+    app.listen(PORT, () => {
+      console.log(`BayesAIn Dashboard running at http://localhost:${PORT}`);
+    });
+  }).catch(err => {
+    console.error('DB init failed:', err);
+    process.exit(1);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`BayesAIn Dashboard running at http://localhost:${PORT}`);
-});
+module.exports = app;

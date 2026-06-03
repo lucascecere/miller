@@ -1,15 +1,22 @@
-const Database = require('better-sqlite3');
+const { sql } = require('@vercel/postgres');
 const fs = require('fs');
 const path = require('path');
 
-const dataDir = path.join(__dirname, '../../data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+async function initDb() {
+  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+  // Split on semicolons and run each statement
+  const statements = schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
+  for (const statement of statements) {
+    try {
+      await sql.query(statement);
+    } catch (e) {
+      // Ignore "already exists" errors on CREATE TABLE IF NOT EXISTS
+      if (!e.message.includes('already exists')) {
+        console.warn('Schema statement warning:', e.message);
+      }
+    }
+  }
+  console.log('[DB] Schema initialized');
+}
 
-const db = new Database(path.join(dataDir, 'bayesain.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-db.exec(schema);
-
-module.exports = db;
+module.exports = { sql, initDb };
