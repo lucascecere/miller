@@ -19,13 +19,7 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     setGenerating(true);
     setGenError('');
     try {
-      const result = await post(`/api/charts/generate/${ticker.symbol}`);
-      if (result.mode === 'manual') {
-        // Show the values to enter, open chart tool
-        const vals = `S0: ${ticker.price?.toFixed(2)} | Low: ${ticker.ppl_low?.toFixed(2)} | Mode: ${ticker.ppl_mode?.toFixed(2)} | High: ${ticker.ppl_high?.toFixed(2)}`;
-        setGenError(`Chart tool opened — enter these values: ${vals}`);
-        window.open('/bayesain.html', '_blank');
-      }
+      await post(`/api/charts/generate/${ticker.symbol}`);
       if (onChartGenerated) onChartGenerated();
     } catch (err) {
       setGenError(err.message.slice(0, 120));
