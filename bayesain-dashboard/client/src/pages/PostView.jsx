@@ -140,7 +140,26 @@ export default function PostView() {
 
             {/* Tweet editor */}
             <div style={sectionStyle}>
-              <div style={labelStyle}>Tweet Text</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.5rem'}}>
+                <div style={{...labelStyle,marginBottom:0}}>Tweet Text</div>
+                <button
+                  onClick={handleCopy}
+                  title="Copy tweet"
+                  style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'0.7rem',fontFamily:'monospace',border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color: copied ? '#86efac' : '#6b6e85',padding:'3px 8px',borderRadius:'5px',cursor:'pointer',transition:'all 0.15s',borderColor: copied ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.15)'}}
+                  onMouseOver={e=>{if(!copied){e.currentTarget.style.borderColor='rgba(125,249,255,0.5)';e.currentTarget.style.color='#7DF9FF';}}}
+                  onMouseOut={e=>{if(!copied){e.currentTarget.style.borderColor='rgba(255,255,255,0.15)';e.currentTarget.style.color='#6b6e85';}}}
+                >
+                  {copied ? '✓ Copied' : (
+                    <>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
               <TweetEditor value={tweetText} onChange={setTweetText} />
 
               {/* Templates */}

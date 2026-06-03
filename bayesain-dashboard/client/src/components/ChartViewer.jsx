@@ -25,6 +25,18 @@ export default function ChartViewer({ ticker, tickerData }) {
 
   useEffect(() => { loadChart(); }, [ticker]);
 
+  function handleDownload() {
+    if (!chart) return;
+    const src = chartSrc(chart.path2d);
+    if (!src) return;
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = `${ticker}-PPL-chart.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
   async function handleRegenerate() {
     if (!tickerData?.price) return setError('No price data — go back and run Refresh Prices first');
     setRegenerating(true);
@@ -82,6 +94,17 @@ export default function ChartViewer({ ticker, tickerData }) {
             <span style={{color:'#6b6e85',fontFamily:'monospace',fontSize:'0.875rem'}}>No chart yet for today</span>
             <span style={{color:'#6b6e85',fontFamily:'monospace',fontSize:'0.75rem'}}>Click Regenerate to create one (~10 seconds)</span>
           </div>
+        )}
+        {chart && (
+          <button
+            onClick={handleDownload}
+            title="Download chart"
+            style={{position:'absolute',top:'0.75rem',left:'0.75rem',fontSize:'0.75rem',fontFamily:'monospace',border:'1px solid rgba(255,255,255,0.2)',background:'rgba(0,0,0,0.7)',color:'#c8cad8',padding:'6px 10px',borderRadius:'6px',cursor:'pointer',transition:'border-color 0.15s,color 0.15s'}}
+            onMouseOver={e=>{e.target.style.borderColor='#7DF9FF';e.target.style.color='#7DF9FF';}}
+            onMouseOut={e=>{e.target.style.borderColor='rgba(255,255,255,0.2)';e.target.style.color='#c8cad8';}}
+          >
+            ↓ Download
+          </button>
         )}
         <button
           onClick={handleRegenerate}
