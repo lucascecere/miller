@@ -14,10 +14,15 @@ async function generateChart({ ticker, s0, sigma, low, mode, high, steps = 252, 
 
   let browser;
   try {
-    browser = await puppeteer.launch({
+    const launchOptions = {
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+    };
+    // On Railway/Linux the bundled Puppeteer Chrome is at a known path
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+    browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
     await page.setViewport({ width: 1400, height: 800 });
 
