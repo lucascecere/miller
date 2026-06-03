@@ -71,19 +71,15 @@ async function fetchTickerData(symbol) {
       console.warn(`Options IV unavailable for ${symbol}, using historical vol`);
     }
 
-    // The HTML tool's sigma input expects DAILY sigma (not annualized).
-    // Luke's spreadsheet used daily sigma values (e.g. 0.0137 for SPY).
-    // daily_sigma = annualized_IV / sqrt(252)
+    // sigma = IV / sqrt(252) — daily volatility, matches Luke's spreadsheet formula
     const annualIV = ivCurrent || sigma;
     const dailySigma = parseFloat((annualIV / Math.sqrt(252)).toFixed(6));
 
-    // PPL levels: lognormal 1-sigma range over 1 year using annual IV
-    // Low  = price × e^(-annualIV)
-    // Mode = price (at-the-money)
-    // High = price × e^(+annualIV)
-    const pplLow  = parseFloat((price * Math.exp(-annualIV)).toFixed(2));
+    // PPL display levels match what the HTML's syncTri() computes: S₀ × 0.93 / 1.0 / 1.07
+    // The HTML handles this automatically — we store matching values for card display only
+    const pplLow  = parseFloat((price * 0.93).toFixed(2));
     const pplMode = parseFloat(price.toFixed(2));
-    const pplHigh = parseFloat((price * Math.exp(+annualIV)).toFixed(2));
+    const pplHigh = parseFloat((price * 1.07).toFixed(2));
 
     return { price, dailyChangePct, sigma: dailySigma, pplLow, pplMode, pplHigh, ivCurrent: annualIV, ivHistorical: sigma };
   } catch (err) {

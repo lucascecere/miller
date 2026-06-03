@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { post } from '../api';
 import StatusBadge from './StatusBadge';
-import { generateChartInBrowser, chartSrc, computeBand } from '../utils/generateChart';
+import { generateChartInBrowser, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
 export default function TickerCard({ ticker, onChartGenerated }) {
@@ -31,11 +31,8 @@ export default function TickerCard({ ticker, onChartGenerated }) {
       const iv = ticker.iv_current || 0.20;
       const chartData = await generateChartInBrowser({
         s0: ticker.price,
-        sigma: ticker.sigma || iv / Math.sqrt(252),
+        sigma: ticker.sigma || computeSigma(iv),
         band: computeBand(iv),
-        low: ticker.ppl_low || ticker.price * 0.93,
-        mode: ticker.ppl_mode || ticker.price,
-        high: ticker.ppl_high || ticker.price * 1.07,
       });
 
       await post(`/api/charts/upload/${ticker.symbol}`, {

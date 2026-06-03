@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get, post } from '../api';
-import { generateChartInBrowser, chartSrc, computeBand } from '../utils/generateChart';
+import { generateChartInBrowser, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
 export default function ChartViewer({ ticker, tickerData }) {
@@ -36,11 +36,8 @@ export default function ChartViewer({ ticker, tickerData }) {
       const iv = tickerData.ivCurrent || 0.20;
       const chartData = await generateChartInBrowser({
         s0: tickerData.price,
-        sigma: tickerData.sigma || iv / Math.sqrt(252),
+        sigma: tickerData.sigma || computeSigma(iv),
         band: computeBand(iv),
-        low: tickerData.pplLow || tickerData.price * 0.93,
-        mode: tickerData.pplMode || tickerData.price,
-        high: tickerData.pplHigh || tickerData.price * 1.07,
       });
 
       const result = await post(`/api/charts/upload/${ticker}`, {
