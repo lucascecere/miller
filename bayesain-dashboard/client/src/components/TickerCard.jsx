@@ -3,10 +3,77 @@ import { useNavigate } from 'react-router-dom';
 import { post } from '../api';
 import StatusBadge from './StatusBadge';
 
+async function generateChartInBrowser({ s0, sigma, low, mode, high, steps = 252, paths = 120 }) {
+  // Fetch the chart tool HTML, strip the auto-run so we control when it fires
+  const res = await fetch('/bayesain.html');
+  let html = await res.text();
+  html = html.replace(/syncTri\(\);\s*\nrun\(\);/, 'syncTri();');
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const blobUrl = URL.createObjectURL(blob);
+
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.src = blobUrl;
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1200px;height:700px;visibility:hidden;pointer-events:none';
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+      URL.revokeObjectURL(blobUrl);
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+    };
+
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Chart generation timed out')); }, 20000);
+
+    iframe.onload = () => {
+      try {
+        const doc = iframe.contentDocument;
+        const win = iframe.contentWindow;
+
+        // Set s0 and trigger syncTri() via the oninput handler
+        const s0El = doc.getElementById('s0');
+        s0El.value = s0;
+        s0El.dispatchEvent(new Event('input', { bubbles: true }));
+
+        doc.getElementById('sigma').value = sigma;
+        doc.getElementById('triLow').value = low;
+        doc.getElementById('triMode').value = mode;
+        doc.getElementById('triHigh').value = high;
+        doc.getElementById('nPaths').value = paths;
+        doc.getElementById('nSteps').value = steps;
+
+        // Run the Monte Carlo simulation (27-iteration animation ~9.5s)
+        win.run();
+
+        setTimeout(() => {
+          try {
+            clearTimeout(timeout);
+            const canvas2d = doc.getElementById('c');
+            const data2d = canvas2d ? canvas2d.toDataURL('image/jpeg', 0.9) : null;
+
+            let data3d = null;
+            const wrap3d = doc.getElementById('c3d-wrap');
+            if (wrap3d && wrap3d.style.display !== 'none') {
+              const canvas3d = doc.getElementById('c3d');
+              if (canvas3d) data3d = canvas3d.toDataURL('image/jpeg', 0.9);
+            }
+
+            cleanup();
+            resolve({ data2d, data3d });
+          } catch (err) { cleanup(); reject(err); }
+        }, 9500);
+      } catch (err) { clearTimeout(timeout); cleanup(); reject(err); }
+    };
+
+    iframe.onerror = () => { clearTimeout(timeout); cleanup(); reject(new Error('Failed to load chart tool')); };
+  });
+}
+
 export default function TickerCard({ ticker, onChartGenerated }) {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState('');
+  const [elapsed, setElapsed] = useState(0);
 
   const changePos = (ticker.daily_change_pct || 0) >= 0;
   const changeColor = changePos ? '#4ade80' : '#f87171';
@@ -16,15 +83,34 @@ export default function TickerCard({ ticker, onChartGenerated }) {
 
   async function handleGenerate(e) {
     e.stopPropagation();
+    if (!ticker.price) return setGenError('No price data — run Refresh Prices first');
     setGenerating(true);
     setGenError('');
+    setElapsed(0);
+
+    const timer = setInterval(() => setElapsed(s => s + 1), 1000);
+
     try {
-      await post(`/api/charts/generate/${ticker.symbol}`);
+      const chartData = await generateChartInBrowser({
+        s0: ticker.price,
+        sigma: ticker.sigma || 0.018,
+        low: ticker.ppl_low || ticker.price * 0.93,
+        mode: ticker.ppl_mode || ticker.price,
+        high: ticker.ppl_high || ticker.price * 1.07,
+      });
+
+      await post(`/api/charts/upload/${ticker.symbol}`, {
+        chartData2d: chartData.data2d,
+        chartData3d: chartData.data3d,
+      });
+
       if (onChartGenerated) onChartGenerated();
     } catch (err) {
       setGenError(err.message.slice(0, 120));
     } finally {
+      clearInterval(timer);
       setGenerating(false);
+      setElapsed(0);
     }
   }
 
@@ -36,6 +122,10 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     cursor: 'pointer',
     transition: 'border-color 0.15s',
   };
+
+  const chartSrc = ticker.chart_2d_path
+    ? (ticker.chart_2d_path.startsWith('http') ? ticker.chart_2d_path : `/${ticker.chart_2d_path}`)
+    : null;
 
   return (
     <div
@@ -94,7 +184,7 @@ export default function TickerCard({ ticker, onChartGenerated }) {
               onMouseOver={e=>{if(!generating){e.target.style.borderColor='#7DF9FF';e.target.style.color='#7DF9FF';}}}
               onMouseOut={e=>{e.target.style.borderColor='rgba(255,255,255,0.2)';e.target.style.color='#c8cad8';}}
             >
-              {generating ? 'Opening…' : 'Open Chart'}
+              {generating ? `Generating… ${elapsed}s` : 'Generate Chart'}
             </button>
             <button
               onClick={() => navigate(`/post/${ticker.symbol}`)}
@@ -106,20 +196,17 @@ export default function TickerCard({ ticker, onChartGenerated }) {
             </button>
           </div>
           {genError && (
-            <p style={{
-              color: genError.startsWith('Chart tool') ? '#7DF9FF' : '#f87171',
-              fontSize:'0.65rem', fontFamily:'monospace', maxWidth:'140px', textAlign:'right'
-            }}>{genError}</p>
+            <p style={{color:'#f87171',fontSize:'0.65rem',fontFamily:'monospace',maxWidth:'140px',textAlign:'right'}}>{genError}</p>
           )}
         </div>
 
       </div>
 
       {/* Chart thumbnail */}
-      {ticker.chart_2d_path && (
+      {chartSrc && (
         <div style={{marginTop:'0.75rem',borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:'0.75rem'}}>
           <img
-            src={`/${ticker.chart_2d_path}`}
+            src={chartSrc}
             alt={`${ticker.symbol} chart`}
             style={{width:'100%',maxHeight:'120px',objectFit:'contain',borderRadius:'4px',opacity:0.9}}
           />

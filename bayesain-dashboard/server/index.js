@@ -20,7 +20,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'bayesain-dev-secret';
 const COOKIE_NAME = 'bayesain_token';
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 function requireAuth(req, res, next) {
