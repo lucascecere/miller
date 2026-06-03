@@ -1,6 +1,13 @@
-export async function generateChartInBrowser({ s0, sigma, low, mode, high, steps = 252, paths = 120 }) {
+// bandMult formula from Luke's spreadsheet: IV × √(52/7)
+// This is the base Band value for the PPL generator (same as Luke's 30-min column baseline)
+export function computeBand(annualIV) {
+  return annualIV * Math.sqrt(52 / 7);
+}
+
+export async function generateChartInBrowser({ s0, sigma, band, low, mode, high, steps = 252, paths = 120 }) {
   const res = await fetch('/bayesain.html');
   let html = await res.text();
+  // Strip auto-run at the bottom so we control when it fires
   html = html.replace(/syncTri\(\);\s*\nrun\(\);/, 'syncTri();');
 
   const blob = new Blob([html], { type: 'text/html' });
@@ -24,11 +31,17 @@ export async function generateChartInBrowser({ s0, sigma, low, mode, high, steps
         const doc = iframe.contentDocument;
         const win = iframe.contentWindow;
 
+        // Set s0 and trigger syncTri() via its oninput handler
         const s0El = doc.getElementById('s0');
         s0El.value = s0;
         s0El.dispatchEvent(new Event('input', { bubbles: true }));
 
+        // Set all parameters matching Luke's workflow:
+        // sigma = IV / sqrt(252)  — daily volatility
+        // band  = IV × sqrt(52/7) — from spreadsheet formula
+        // triLow/Mode/High        — from IV-derived lognormal (or manual override)
         doc.getElementById('sigma').value = sigma;
+        if (band != null) doc.getElementById('bandMult').value = band;
         doc.getElementById('triLow').value = low;
         doc.getElementById('triMode').value = mode;
         doc.getElementById('triHigh').value = high;
