@@ -46,15 +46,9 @@ app.use('/api/settings', requireAuth, settingsRoutes);
 // Static: public/ (bayesain.html, generated charts)
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Static: built React app
-const clientDist = path.join(__dirname, '../public/app');
-if (fs.existsSync(clientDist)) {
-  app.use(express.static(clientDist));
-}
-
 // SPA fallback
 app.get('*', (req, res) => {
-  const index = path.join(__dirname, '../public/app/index.html');
+  const index = path.join(__dirname, '../public/index.html');
   if (fs.existsSync(index)) {
     res.sendFile(index);
   } else {
