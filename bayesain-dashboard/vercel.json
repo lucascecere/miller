@@ -5,8 +5,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60,
-      "includeFiles": "public/bayesain.html",
-      "externalNodeModules": ["yahoo-finance2", "@sparticuz/chromium-min", "puppeteer-core"]
+      "includeFiles": "public/bayesain.html"
     }
   },
   "rewrites": [
