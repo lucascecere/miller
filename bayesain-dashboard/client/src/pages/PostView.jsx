@@ -112,7 +112,7 @@ export default function PostView() {
 
           {/* Left: chart + PPL */}
           <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
-            <ChartViewer ticker={ticker} />
+            <ChartViewer ticker={ticker} tickerData={data} />
 
             {data.pplLow && (
               <div style={sectionStyle}>
