@@ -11,11 +11,9 @@ function getChartsDir() {
 
 async function launchBrowser() {
   if (IS_VERCEL) {
-    const chromium = require('@sparticuz/chromium-min');
+    const chromium = require('@sparticuz/chromium');
     const puppeteer = require('puppeteer-core');
-    const executablePath = await chromium.executablePath(
-      'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
-    );
+    const executablePath = await chromium.executablePath();
     return puppeteer.launch({
       args: chromium.args,
       defaultViewport: { width: 1400, height: 800 },

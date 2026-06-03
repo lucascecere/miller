@@ -15,7 +15,7 @@
     "jsonwebtoken": "^9.0.2",
     "cookie-parser": "^1.4.6",
     "puppeteer-core": "^22.0.0",
-    "@sparticuz/chromium-min": "^131.0.1",
+    "@sparticuz/chromium": "^131.0.1",
     "node-cron": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5"
