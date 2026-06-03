@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { post } from '../api';
 import StatusBadge from './StatusBadge';
 import { generateChartInBrowser, chartSrc } from '../utils/generateChart';
+import ChartLightbox from './ChartLightbox';
 
 export default function TickerCard({ ticker, onChartGenerated }) {
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [lightbox, setLightbox] = useState(null);
 
   const changePos = (ticker.daily_change_pct || 0) >= 0;
   const changeColor = changePos ? '#4ade80' : '#f87171';
@@ -136,12 +138,14 @@ export default function TickerCard({ ticker, onChartGenerated }) {
       </div>
 
       {/* Chart thumbnail */}
+      {lightbox && <ChartLightbox src={lightbox} onClose={() => setLightbox(null)} />}
       {chartImgSrc && (
         <div style={{marginTop:'0.75rem',borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:'0.75rem'}}>
           <img
             src={chartImgSrc}
             alt={`${ticker.symbol} chart`}
-            style={{width:'100%',maxHeight:'120px',objectFit:'contain',borderRadius:'4px',opacity:0.9}}
+            onClick={e => { e.stopPropagation(); setLightbox(chartImgSrc); }}
+            style={{width:'100%',maxHeight:'120px',objectFit:'contain',borderRadius:'4px',opacity:0.9,cursor:'zoom-in'}}
           />
         </div>
       )}

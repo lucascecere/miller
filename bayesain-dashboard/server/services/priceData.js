@@ -14,8 +14,8 @@ async function fetchTickerData(symbol) {
     const prevClose = meta.chartPreviousClose || meta.previousClose || price;
     const dailyChangePct = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
 
-    // Fetch 6-month historical to compute sigma
-    let sigma = 0.018;
+    // Compute historical annualized volatility from 6-month daily returns
+    let sigma = 0.20; // default 20% annual vol
     try {
       const histRes = await fetch(
         `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`,
@@ -34,7 +34,7 @@ async function fetchTickerData(symbol) {
           if (logReturns.length > 5) {
             const mean = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
             const variance = logReturns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / (logReturns.length - 1);
-            sigma = Math.sqrt(variance * 252);
+            sigma = Math.sqrt(variance * 252); // annualized vol
           }
         }
       }
@@ -42,13 +42,45 @@ async function fetchTickerData(symbol) {
       console.warn(`Historical data unavailable for ${symbol}, using default sigma`);
     }
 
-    const pplLow  = parseFloat((price * 0.93).toFixed(2));
-    const pplMode = parseFloat(price.toFixed(2));
-    const pplHigh = parseFloat((price * 1.07).toFixed(2));
-    const ivCurrent    = sigma || 0.20;
-    const ivHistorical = sigma || 0.20;
+    // Try to get implied volatility from nearest-expiry ATM options
+    let ivCurrent = sigma;
+    try {
+      const optRes = await fetch(
+        `https://query1.finance.yahoo.com/v7/finance/options/${symbol}`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      );
+      if (optRes.ok) {
+        const optJson = await optRes.json();
+        const calls = optJson?.optionChain?.result?.[0]?.options?.[0]?.calls || [];
+        const puts  = optJson?.optionChain?.result?.[0]?.options?.[0]?.puts  || [];
 
-    return { price, dailyChangePct, sigma, pplLow, pplMode, pplHigh, ivCurrent, ivHistorical };
+        // Find ATM call and put (nearest strike to current price)
+        const findATM = (chain) => chain.reduce((best, opt) => {
+          if (!best) return opt;
+          return Math.abs(opt.strike - price) < Math.abs(best.strike - price) ? opt : best;
+        }, null);
+
+        const atmCall = findATM(calls);
+        const atmPut  = findATM(puts);
+        const ivs = [atmCall?.impliedVolatility, atmPut?.impliedVolatility].filter(Boolean);
+        if (ivs.length > 0) {
+          ivCurrent = ivs.reduce((a, b) => a + b, 0) / ivs.length;
+        }
+      }
+    } catch (e) {
+      console.warn(`Options IV unavailable for ${symbol}, using historical vol`);
+    }
+
+    // PPL levels using IV: lognormal 1-sigma annual range
+    // Low  = price × e^(-IV)  ≈ downside target
+    // Mode = price             (neutral / at-the-money)
+    // High = price × e^(+IV)  ≈ upside target
+    const iv = ivCurrent || sigma;
+    const pplLow  = parseFloat((price * Math.exp(-iv)).toFixed(2));
+    const pplMode = parseFloat(price.toFixed(2));
+    const pplHigh = parseFloat((price * Math.exp(+iv)).toFixed(2));
+
+    return { price, dailyChangePct, sigma, pplLow, pplMode, pplHigh, ivCurrent, ivHistorical: sigma };
   } catch (err) {
     console.error(`fetchTickerData failed for ${symbol}:`, err.message);
     throw err;

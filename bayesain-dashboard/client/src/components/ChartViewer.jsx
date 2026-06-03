@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { get, post } from '../api';
 import { generateChartInBrowser, chartSrc } from '../utils/generateChart';
+import ChartLightbox from './ChartLightbox';
 
 export default function ChartViewer({ ticker, tickerData }) {
   const [chart, setChart] = useState(null);
@@ -8,6 +9,7 @@ export default function ChartViewer({ ticker, tickerData }) {
   const [regenerating, setRegenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [show3d, setShow3d] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const [error, setError] = useState('');
 
   async function loadChart() {
@@ -67,9 +69,15 @@ export default function ChartViewer({ ticker, tickerData }) {
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:'0.75rem'}}>
+      {lightbox && <ChartLightbox src={lightbox} onClose={() => setLightbox(null)} />}
       <div style={containerStyle}>
         {chart ? (
-          <img src={chartSrc(chart.path2d)} alt={`${ticker} PPL chart`} style={{width:'100%',display:'block'}} />
+          <img
+            src={chartSrc(chart.path2d)}
+            alt={`${ticker} PPL chart`}
+            onClick={() => setLightbox(chartSrc(chart.path2d))}
+            style={{width:'100%',display:'block',cursor:'zoom-in'}}
+          />
         ) : (
           <div style={{height:'200px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'0.5rem'}}>
             <span style={{color:'#6b6e85',fontFamily:'monospace',fontSize:'0.875rem'}}>No chart yet for today</span>
@@ -101,7 +109,12 @@ export default function ChartViewer({ ticker, tickerData }) {
           </button>
           {show3d && (
             <div style={{...containerStyle,marginTop:'0.5rem'}}>
-              <img src={chartSrc(chart.path3d)} alt={`${ticker} 3D chart`} style={{width:'100%',display:'block'}} />
+              <img
+                src={chartSrc(chart.path3d)}
+                alt={`${ticker} 3D chart`}
+                onClick={() => setLightbox(chartSrc(chart.path3d))}
+                style={{width:'100%',display:'block',cursor:'zoom-in'}}
+              />
             </div>
           )}
         </div>
