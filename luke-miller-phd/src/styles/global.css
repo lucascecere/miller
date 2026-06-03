@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-lm-bg: #FAFAF9;
+  --color-lm-text: #1C1917;
+  --color-lm-accent: #4A6FA5;
+  --color-lm-muted: #6B7280;
+  --color-lm-border: #E5E7EB;
+  --color-lm-surface: #F3F4F6;
+  --font-family-serif: "Playfair Display", Georgia, serif;
+  --font-family-sans: "DM Sans", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-lm-bg);
+    color: var(--color-lm-text);
+    font-family: var(--font-family-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-serif);
+  }
+}
+
+@layer components {
+  .prose {
+    --tw-prose-body: #1C1917;
+    --tw-prose-headings: #1C1917;
+    --tw-prose-links: #4A6FA5;
+    --tw-prose-bold: #1C1917;
+    --tw-prose-counters: #6B7280;
+    --tw-prose-bullets: #6B7280;
+    --tw-prose-hr: #E5E7EB;
+    --tw-prose-quotes: #1C1917;
+    --tw-prose-quote-borders: #4A6FA5;
+    --tw-prose-captions: #6B7280;
+    --tw-prose-code: #1C1917;
+    --tw-prose-th-borders: #E5E7EB;
+    --tw-prose-td-borders: #E5E7EB;
+    font-family: "Playfair Display", Georgia, serif;
+    line-height: 1.8;
+  }
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    font-family: "Playfair Display", Georgia, serif;
+    font-weight: 700;
+  }
+  .prose a:hover {
+    color: #1C1917;
+  }
+}

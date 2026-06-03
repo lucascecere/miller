@@ -1,0 +1,31 @@
+---
+interface Props {
+  title: string;
+  date: Date;
+  category: string;
+  tags: string[];
+  summary: string;
+  slug: string;
+}
+
+const { title, date, category, summary, slug } = Astro.props;
+
+const formattedDate = date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+});
+---
+
+<article class="group border border-lm-border rounded-lg bg-white hover:border-lm-accent hover:shadow-sm transition-all duration-200">
+  <a href={`/research/${slug}`} class="block px-5 py-5" aria-label={`Read: ${title}`}>
+    <div class="flex items-center gap-3 text-xs text-lm-muted font-sans mb-2.5">
+      <time datetime={date.toISOString()}>{formattedDate}</time>
+      <span aria-hidden="true">&middot;</span>
+      <span class="text-lm-accent font-medium">{category}</span>
+    </div>
+    <h3 class="font-serif text-base font-semibold text-lm-text group-hover:text-lm-accent transition-colors duration-150 mb-2 leading-snug">
+      {title}
+    </h3>
+    <p class="text-sm text-lm-muted leading-relaxed line-clamp-2">{summary}</p>
+  </a>
+</article>

@@ -1,0 +1,89 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '@layouts/Layout.astro';
+import ResearchCard from '@components/ResearchCard.astro';
+
+const allPosts = await getCollection('research', ({ data }) => !data.draft);
+const sorted = allPosts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const categories = [
+  'Real Options',
+  'Bayesian Methods',
+  'Option Pricing',
+  'Applications',
+  'Financial Engineering',
+] as const;
+---
+
+<Layout
+  title="Research | Luke Miller, PhD"
+  description="Research publications and working papers by Luke Miller, Associate Professor of Finance at Saint Anselm College. Topics include real options, Bayesian methods, and option pricing."
+>
+  <div class="pt-2 pb-8 border-b border-lm-border">
+    <h1 class="font-serif text-3xl font-bold text-lm-text">Research</h1>
+    <p class="text-lm-muted text-sm font-sans mt-2">Working papers, publications, and ongoing projects.</p>
+  </div>
+
+  <!-- Category filter -->
+  <nav class="flex flex-wrap gap-2 py-5 border-b border-lm-border" aria-label="Filter by category">
+    <button
+      data-category="all"
+      class="filter-btn text-xs font-sans px-3 py-1.5 rounded-full border border-lm-border text-lm-muted hover:border-lm-accent hover:text-lm-accent transition-colors duration-150 active"
+    >
+      All
+    </button>
+    {categories.map((cat) => (
+      <button
+        data-category={cat}
+        class="filter-btn text-xs font-sans px-3 py-1.5 rounded-full border border-lm-border text-lm-muted hover:border-lm-accent hover:text-lm-accent transition-colors duration-150"
+      >
+        {cat}
+      </button>
+    ))}
+  </nav>
+
+  <!-- Post list -->
+  <div id="research-list" class="flex flex-col gap-3 mt-3">
+    {sorted.map((post) => (
+      <div data-post-category={post.data.category}>
+        <ResearchCard
+          title={post.data.title}
+          date={post.data.date}
+          category={post.data.category}
+          tags={post.data.tags}
+          summary={post.data.summary}
+          slug={post.id}
+        />
+      </div>
+    ))}
+  </div>
+</Layout>
+
+<style>
+  .filter-btn.active {
+    border-color: #4A6FA5;
+    color: #4A6FA5;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+  const posts = document.querySelectorAll<HTMLDivElement>('[data-post-category]');
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      buttons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const selected = btn.dataset.category;
+      posts.forEach((post) => {
+        if (selected === 'all' || post.dataset.postCategory === selected) {
+          (post as HTMLElement).style.display = '';
+        } else {
+          (post as HTMLElement).style.display = 'none';
+        }
+      });
+    });
+  });
+</script>

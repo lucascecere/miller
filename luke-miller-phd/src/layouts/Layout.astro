@@ -1,0 +1,144 @@
+---
+import '@fontsource/playfair-display/400.css';
+import '@fontsource/playfair-display/400-italic.css';
+import '@fontsource/playfair-display/600.css';
+import '@fontsource/playfair-display/700.css';
+import '@fontsource/dm-sans/400.css';
+import '@fontsource/dm-sans/500.css';
+import '@fontsource/dm-sans/600.css';
+import '../styles/global.css';
+import Nav from '@components/Nav.astro';
+import Footer from '@components/Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  article?: boolean;
+  publishedDate?: Date;
+}
+
+const { title, description, ogImage, article = false, publishedDate } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogImageURL = new URL(ogImage ?? '/og-default.png', Astro.site);
+const suffix = ' | Luke Miller, PhD';
+const pageTitle = title.includes('Luke Miller')
+  ? title
+  : title.length + suffix.length > 60
+    ? title.slice(0, 60 - suffix.length - 3).trimEnd() + '...' + suffix
+    : title + suffix;
+const ogTitle = title.includes('Luke Miller') ? title : title + suffix;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Luke Miller" />
+    <link rel="canonical" href={canonicalURL.toString()} />
+    <link rel="alternate" type="application/rss+xml" title="Luke Miller Research RSS" href="/rss.xml" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={article ? 'article' : 'website'} />
+    <meta property="og:url" content={canonicalURL.toString()} />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageURL.toString()} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Luke Miller, PhD" />
+    {article && publishedDate && (
+      <meta property="article:published_time" content={publishedDate.toISOString()} />
+      <meta property="article:author" content="Luke Miller" />
+    )}
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={ogTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL.toString()} />
+
+    <!-- JSON-LD -->
+    {article ? (
+      <script type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "ScholarlyArticle",
+            "@id": `${canonicalURL.toString()}#article`,
+            "headline": title,
+            "description": description,
+            "url": canonicalURL.toString(),
+            "author": { "@id": "https://lukemillerphd.org/#person" },
+            "publisher": { "@id": "https://lukemillerphd.org/#person" },
+            ...(publishedDate ? { "datePublished": publishedDate.toISOString() } : {}),
+            "inLanguage": "en-US",
+            "isPartOf": { "@id": "https://lukemillerphd.org/#website" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://lukemillerphd.org" },
+              { "@type": "ListItem", "position": 2, "name": "Research", "item": "https://lukemillerphd.org/research" },
+              { "@type": "ListItem", "position": 3, "name": title, "item": canonicalURL.toString() }
+            ]
+          }
+        ]
+      })} />
+    ) : (
+      <script type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Person",
+            "@id": "https://lukemillerphd.org/#person",
+            "name": "Luke Miller",
+            "givenName": "Luke",
+            "familyName": "Miller",
+            "honorificSuffix": "PhD",
+            "jobTitle": "Associate Professor of Finance",
+            "worksFor": {
+              "@type": "CollegeOrUniversity",
+              "name": "Saint Anselm College",
+              "url": "https://www.anselm.edu"
+            },
+            "alumniOf": [
+              { "@type": "CollegeOrUniversity", "name": "Auburn University", "description": "PhD and MS in Financial Engineering" },
+              { "@type": "CollegeOrUniversity", "name": "University of Virginia", "description": "BS in Systems Engineering" }
+            ],
+            "award": "Gilbreth Memorial Fellowship — top doctoral student nationally",
+            "knowsAbout": ["Bayesian inference", "real options valuation", "capital budgeting", "financial engineering", "investment under uncertainty"],
+            "url": "https://lukemillerphd.org",
+            "image": "https://lukemillerphd.org/Luke-Miller.png",
+            "sameAs": []
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://lukemillerphd.org/#website",
+            "url": "https://lukemillerphd.org",
+            "name": "Luke Miller, PhD",
+            "description": "Academic website of Luke Miller, Associate Professor of Finance at Saint Anselm College",
+            "publisher": { "@id": "https://lukemillerphd.org/#person" }
+          }
+        ]
+      })} />
+    )}
+  </head>
+  <body class="bg-lm-bg text-lm-text font-sans min-h-screen flex flex-col">
+    <div class="h-1 w-full bg-lm-accent" aria-hidden="true"></div>
+    <Nav />
+    <main class="flex-1 w-full max-w-screen-xl mx-auto px-6 md:px-12 lg:px-20 py-12 md:py-16">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

@@ -1,0 +1,45 @@
+---
+const pathname = Astro.url.pathname;
+const isActive = (path: string) =>
+  path === '/' ? pathname === '/' : pathname.startsWith(path);
+
+const links = [
+  { href: '/research', label: 'Research' },
+  { href: '/cv',       label: 'CV' },
+  { href: '/media',    label: 'Press' },
+  { href: '/contact',  label: 'Contact' },
+];
+---
+
+<nav class="w-full border-b border-lm-border bg-lm-bg sticky top-0 z-10" aria-label="Main navigation">
+  <div class="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-20 py-4 flex items-center justify-between">
+    <a
+      href="/"
+      class:list={[
+        'font-serif font-normal text-lg tracking-tight transition-colors duration-150',
+        isActive('/') ? 'text-lm-text' : 'text-lm-text hover:text-lm-accent',
+      ]}
+      aria-current={isActive('/') ? 'page' : undefined}
+    >
+      Luke Miller
+    </a>
+    <ul class="flex gap-5 text-sm font-sans font-medium" role="list">
+      {links.map(({ href, label }) => (
+        <li>
+          <a
+            href={href}
+            class:list={[
+              'transition-colors duration-150',
+              isActive(href)
+                ? 'text-lm-text font-semibold'
+                : 'text-lm-muted hover:text-lm-accent',
+            ]}
+            aria-current={isActive(href) ? 'page' : undefined}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>

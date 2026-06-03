@@ -1,0 +1,90 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '@layouts/Layout.astro';
+import Prose from '@components/Prose.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('research', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const allPosts = (await getCollection('research', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const idx = allPosts.findIndex((p) => p.id === post.id);
+const prev = allPosts[idx + 1] ?? null;
+const next = allPosts[idx - 1] ?? null;
+
+const formattedDate = post.data.date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.summary}
+  article={true}
+  publishedDate={post.data.date}
+>
+  <article>
+    <nav aria-label="Breadcrumb" class="text-xs text-lm-muted font-sans mb-6 flex items-center gap-1.5 flex-wrap">
+      <a href="/" class="hover:text-lm-accent transition-colors duration-150">Home</a>
+      <span aria-hidden="true">/</span>
+      <a href="/research" class="hover:text-lm-accent transition-colors duration-150">Research</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-lm-text" aria-current="page">{post.data.title}</span>
+    </nav>
+
+    <!-- Post header -->
+    <header class="pt-2 pb-8 border-b border-lm-border mb-10">
+      <div class="flex items-center gap-3 text-xs text-lm-muted font-sans mb-3">
+        <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
+        <span aria-hidden="true">&middot;</span>
+        <span class="text-lm-accent">{post.data.category}</span>
+        <span aria-hidden="true">&middot;</span>
+        <span class="text-lm-muted">{post.data.author}</span>
+      </div>
+      <h1 class="font-serif text-3xl font-bold text-lm-text leading-snug mb-3">
+        {post.data.title}
+      </h1>
+      <p class="text-lm-muted text-sm leading-relaxed font-sans">{post.data.summary}</p>
+      <div class="flex flex-wrap gap-2 mt-4">
+        {post.data.tags.map((tag) => (
+          <span class="text-xs bg-lm-surface text-lm-muted px-2.5 py-1 rounded-full font-sans">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </header>
+
+    <!-- Post body -->
+    <Prose>
+      <Content />
+    </Prose>
+
+    <!-- Prev/Next -->
+    <nav
+      class="border-t border-lm-border mt-12 pt-6 flex justify-between gap-4 text-sm font-sans"
+      aria-label="Post navigation"
+    >
+      {prev ? (
+        <a href={`/research/${prev.id}`} class="text-lm-accent hover:underline max-w-[45%]">
+          &larr; {prev.data.title}
+        </a>
+      ) : <span />}
+      {next && (
+        <a href={`/research/${next.id}`} class="text-lm-accent hover:underline text-right max-w-[45%] ml-auto">
+          {next.data.title} &rarr;
+        </a>
+      )}
+    </nav>
+  </article>
+</Layout>

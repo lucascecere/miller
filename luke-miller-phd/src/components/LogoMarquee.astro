@@ -1,0 +1,49 @@
+---
+const logos = [
+  { src: '/logos/logo-01.png', alt: 'ProQuest' },
+  { src: '/logos/logo-02.png', alt: 'MarketWatch' },
+  { src: '/logos/logo-03.png', alt: 'Stock Gumshoe' },
+  { src: '/logos/logo-04.png', alt: 'Nasdaq' },
+  { src: '/logos/logo-05.png', alt: 'ResearchGate' },
+  { src: '/logos/logo-06.png', alt: 'Elliott Wave Trader' },
+  { src: '/logos/logo-07.png', alt: 'Green Bull Research' },
+  { src: '/logos/logo-08.png', alt: 'Seeking Alpha' },
+  { src: '/logos/logo-09.png', alt: 'MoneyShow' },
+  { src: '/logos/logo-10.png', alt: 'Equities.com' },
+  { src: '/logos/logo-11.png', alt: 'TalkMarkets' },
+];
+---
+
+<div class="marquee-outer overflow-hidden">
+  <div class="marquee-track flex items-center gap-14 w-max">
+    {[...logos, ...logos].map((logo) => (
+      <img
+        src={logo.src}
+        alt={logo.alt}
+        height="36"
+        class="h-9 w-auto object-contain shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-200"
+        loading="lazy"
+      />
+    ))}
+  </div>
+</div>
+
+<style>
+  .marquee-outer {
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+
+  .marquee-track {
+    animation: scroll-logos 40s linear infinite;
+  }
+
+  .marquee-outer:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes scroll-logos {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+</style>

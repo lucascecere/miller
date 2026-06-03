@@ -1,0 +1,29 @@
+---
+title: "Using Neural Networks to Improve Financial Option Pricing"
+date: 2025-04-25
+author: "David Araujo"
+category: "Financial Engineering"
+tags: ["neural networks", "Black-Scholes", "option pricing", "machine learning", "backpropagation", "financial engineering"]
+summary: "A backpropagation neural network trained on Black-Scholes values achieves improved pricing accuracy for in- and out-of-the-money options by capturing real-world market imperfections."
+draft: false
+---
+
+This research explores an alternative approach to traditional Black-Scholes pricing by leveraging neural networks for financial options valuation. The methodology involves training a backpropagation neural network using Black-Scholes values as training data inputs, then evaluating the trained model against market prices.
+
+## Motivation
+
+The Black-Scholes model rests on assumptions — constant volatility, lognormal returns, frictionless markets — that are routinely violated in practice. These violations produce systematic mispricing, particularly for deep in-the-money and out-of-the-money contracts.
+
+## Methodology
+
+A backpropagation neural network is trained on Black-Scholes generated prices, then evaluated against actual market data. The neural network learns to adjust for systematic deviations — effectively learning the correction to Black-Scholes implied by observed market prices.
+
+## Key Findings
+
+- Improved predictive accuracy versus standard Black-Scholes for in-the-money contracts
+- Improved accuracy for out-of-the-money contracts
+- Neural networks can adjust for real-world market imperfections that Black-Scholes cannot
+
+## Significance
+
+The research positions this neural network approach as a promising direction for option valuation, offering practitioners an enhanced tool for more accurate market-based pricing predictions.
