@@ -71,16 +71,21 @@ async function fetchTickerData(symbol) {
       console.warn(`Options IV unavailable for ${symbol}, using historical vol`);
     }
 
-    // PPL levels using IV: lognormal 1-sigma annual range
-    // Low  = price × e^(-IV)  ≈ downside target
-    // Mode = price             (neutral / at-the-money)
-    // High = price × e^(+IV)  ≈ upside target
-    const iv = ivCurrent || sigma;
-    const pplLow  = parseFloat((price * Math.exp(-iv)).toFixed(2));
-    const pplMode = parseFloat(price.toFixed(2));
-    const pplHigh = parseFloat((price * Math.exp(+iv)).toFixed(2));
+    // The HTML tool's sigma input expects DAILY sigma (not annualized).
+    // Luke's spreadsheet used daily sigma values (e.g. 0.0137 for SPY).
+    // daily_sigma = annualized_IV / sqrt(252)
+    const annualIV = ivCurrent || sigma;
+    const dailySigma = parseFloat((annualIV / Math.sqrt(252)).toFixed(6));
 
-    return { price, dailyChangePct, sigma, pplLow, pplMode, pplHigh, ivCurrent, ivHistorical: sigma };
+    // PPL levels: lognormal 1-sigma range over 1 year using annual IV
+    // Low  = price × e^(-annualIV)
+    // Mode = price (at-the-money)
+    // High = price × e^(+annualIV)
+    const pplLow  = parseFloat((price * Math.exp(-annualIV)).toFixed(2));
+    const pplMode = parseFloat(price.toFixed(2));
+    const pplHigh = parseFloat((price * Math.exp(+annualIV)).toFixed(2));
+
+    return { price, dailyChangePct, sigma: dailySigma, pplLow, pplMode, pplHigh, ivCurrent: annualIV, ivHistorical: sigma };
   } catch (err) {
     console.error(`fetchTickerData failed for ${symbol}:`, err.message);
     throw err;
