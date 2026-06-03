@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS charts (
   chart_2d_path TEXT,
   chart_3d_path TEXT,
   sigma REAL,
-  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(symbol, date)
 );
 
 CREATE TABLE IF NOT EXISTS posts (
