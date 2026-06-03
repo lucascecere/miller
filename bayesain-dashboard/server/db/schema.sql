@@ -72,7 +72,7 @@ INSERT INTO tickers (symbol, company_name, is_core) VALUES
 ON CONFLICT DO NOTHING;
 
 INSERT INTO settings VALUES
-  ('team_members', '["Luke","Lucas","Team Member 3","Team Member 4"]'),
+  ('team_members', '["Luke","Alex","Lucas","Kate","JJ"]'),
   ('posts_per_day', '3'),
   ('adanos_api_key', ''),
   ('google_sheets_id', '')
