@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { sql } = require('../db/db');
+const { supabase } = require('../db/db');
 const { fetchTickerData } = require('../services/priceData');
 const { fetchBuzzScore } = require('../services/buzzData');
 const { calculatePriority } = require('../services/priorityScorer');
@@ -8,21 +8,10 @@ const { calculatePriority } = require('../services/priorityScorer');
 router.get('/', async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const { rows } = await sql`
-      SELECT t.id, t.symbol, t.company_name, t.is_core,
-             td.price, td.daily_change_pct, td.iv_current, td.iv_historical,
-             td.buzz_score, td.priority_score, td.ppl_low, td.ppl_mode, td.ppl_high, td.sigma,
-             p.status, p.tweet_text,
-             c.chart_2d_path, c.chart_3d_path,
-             p.posted_at as last_posted_at
-      FROM tickers t
-      LEFT JOIN ticker_data td ON t.symbol = td.symbol AND td.date = ${today}
-      LEFT JOIN posts p ON t.symbol = p.symbol AND p.date = ${today}
-      LEFT JOIN charts c ON t.symbol = c.symbol AND c.date = ${today}
-      ORDER BY COALESCE(td.priority_score, 0) DESC
-    `;
+    const { data, error } = await supabase.rpc('get_tickers_today', { p_date: today });
+    if (error) throw error;
 
-    const result = rows.map(row => {
+    const result = (data || []).map(row => {
       let daysSincePosted = null;
       if (row.last_posted_at) {
         const posted = new Date(row.last_posted_at);
@@ -40,7 +29,8 @@ router.get('/', async (req, res) => {
 
 router.post('/refresh', async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  const { rows: tickers } = await sql`SELECT * FROM tickers`;
+  const { data: tickers, error: tickerErr } = await supabase.from('tickers').select('*');
+  if (tickerErr) return res.status(500).json({ error: tickerErr.message });
 
   let refreshed = 0;
   const errors = [];
@@ -50,13 +40,16 @@ router.post('/refresh', async (req, res) => {
       const data = await fetchTickerData(ticker.symbol);
       const buzzScore = await fetchBuzzScore(ticker.symbol);
 
-      const { rows: lastPosts } = await sql`
-        SELECT posted_at FROM posts WHERE symbol = ${ticker.symbol} AND status = 'posted'
-        ORDER BY posted_at DESC LIMIT 1
-      `;
+      const { data: lastPosts } = await supabase
+        .from('posts')
+        .select('posted_at')
+        .eq('symbol', ticker.symbol)
+        .eq('status', 'posted')
+        .order('posted_at', { ascending: false })
+        .limit(1);
 
       let daysSincePosted = 7;
-      if (lastPosts.length > 0 && lastPosts[0].posted_at) {
+      if (lastPosts && lastPosts.length > 0 && lastPosts[0].posted_at) {
         daysSincePosted = Math.floor((Date.now() - new Date(lastPosts[0].posted_at)) / (1000 * 60 * 60 * 24));
       }
 
@@ -69,22 +62,23 @@ router.post('/refresh', async (req, res) => {
         daysSincePosted
       });
 
-      await sql`
-        INSERT INTO ticker_data (symbol, date, price, daily_change_pct, iv_current, iv_historical, buzz_score, priority_score, ppl_low, ppl_mode, ppl_high, sigma)
-        VALUES (${ticker.symbol}, ${today}, ${data.price}, ${data.dailyChangePct}, ${data.ivCurrent}, ${data.ivHistorical}, ${buzzScore}, ${priorityScore}, ${data.pplLow}, ${data.pplMode}, ${data.pplHigh}, ${data.sigma})
-        ON CONFLICT (symbol, date) DO UPDATE SET
-          price = EXCLUDED.price,
-          daily_change_pct = EXCLUDED.daily_change_pct,
-          iv_current = EXCLUDED.iv_current,
-          iv_historical = EXCLUDED.iv_historical,
-          buzz_score = EXCLUDED.buzz_score,
-          priority_score = EXCLUDED.priority_score,
-          ppl_low = EXCLUDED.ppl_low,
-          ppl_mode = EXCLUDED.ppl_mode,
-          ppl_high = EXCLUDED.ppl_high,
-          sigma = EXCLUDED.sigma,
-          updated_at = CURRENT_TIMESTAMP
-      `;
+      const { error: upsertErr } = await supabase.from('ticker_data').upsert({
+        symbol: ticker.symbol,
+        date: today,
+        price: data.price,
+        daily_change_pct: data.dailyChangePct,
+        iv_current: data.ivCurrent,
+        iv_historical: data.ivHistorical,
+        buzz_score: buzzScore,
+        priority_score: priorityScore,
+        ppl_low: data.pplLow,
+        ppl_mode: data.pplMode,
+        ppl_high: data.pplHigh,
+        sigma: data.sigma,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'symbol,date' });
+
+      if (upsertErr) throw upsertErr;
       refreshed++;
     } catch (err) {
       console.error(`Refresh failed for ${ticker.symbol}:`, err.message);

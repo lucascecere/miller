@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { sql } = require('../db/db');
+const { supabase } = require('../db/db');
 const { generateChart } = require('../services/chartGenerator');
 
 const IS_VERCEL = !!process.env.VERCEL;
@@ -26,8 +26,14 @@ router.post('/generate/:symbol', async (req, res) => {
   const { symbol } = req.params;
   const today = new Date().toISOString().split('T')[0];
 
-  const { rows } = await sql`SELECT * FROM ticker_data WHERE symbol = ${symbol} AND date = ${today}`;
-  const tickerData = rows[0];
+  const { data: rows, error: fetchErr } = await supabase
+    .from('ticker_data')
+    .select('*')
+    .eq('symbol', symbol)
+    .eq('date', today);
+
+  if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+  const tickerData = rows && rows[0];
 
   if (!tickerData) {
     return res.status(400).json({ error: `No price data for ${symbol}. Run Refresh Prices first.` });
@@ -43,21 +49,27 @@ router.post('/generate/:symbol', async (req, res) => {
       high: tickerData.ppl_high
     });
 
-    const { rows: inserted } = await sql`
-      INSERT INTO charts (symbol, date, chart_2d_path, chart_3d_path, sigma)
-      VALUES (${symbol}, ${today}, ${result.path2d}, ${result.path3d}, ${tickerData.sigma})
-      ON CONFLICT (symbol, date) DO UPDATE SET
-        chart_2d_path = EXCLUDED.chart_2d_path,
-        chart_3d_path = EXCLUDED.chart_3d_path,
-        generated_at = CURRENT_TIMESTAMP
-      RETURNING id
-    `;
+    const { data: inserted, error: chartErr } = await supabase
+      .from('charts')
+      .upsert({
+        symbol,
+        date: today,
+        chart_2d_path: result.path2d,
+        chart_3d_path: result.path3d,
+        sigma: tickerData.sigma,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'symbol,date' })
+      .select()
+      .single();
 
-    if (inserted.length > 0) {
-      await sql`
-        UPDATE posts SET status = 'chart_ready', chart_id = ${inserted[0].id}
-        WHERE symbol = ${symbol} AND date = ${today} AND status = 'draft'
-      `;
+    if (chartErr) throw chartErr;
+
+    if (inserted) {
+      await supabase.from('posts')
+        .update({ status: 'chart_ready', chart_id: inserted.id })
+        .eq('symbol', symbol)
+        .eq('date', today)
+        .eq('status', 'draft');
     }
 
     res.json({ symbol, path2d: result.path2d, path3d: result.path3d, generatedAt: result.generatedAt });
@@ -71,12 +83,15 @@ router.post('/generate-all', async (req, res) => {
   const { limit = 10 } = req.body || {};
   const today = new Date().toISOString().split('T')[0];
 
-  const { rows: topTickers } = await sql`
-    SELECT * FROM ticker_data WHERE date = ${today}
-    ORDER BY priority_score DESC LIMIT ${limit}
-  `;
+  const { data: topTickers, error } = await supabase
+    .from('ticker_data')
+    .select('*')
+    .eq('date', today)
+    .order('priority_score', { ascending: false })
+    .limit(limit);
 
-  if (!topTickers.length) {
+  if (error) return res.status(500).json({ error: error.message });
+  if (!topTickers || !topTickers.length) {
     return res.status(400).json({ error: 'No ticker data for today. Run Refresh Prices first.' });
   }
 
@@ -87,14 +102,14 @@ router.post('/generate-all', async (req, res) => {
         ticker: td.symbol, s0: td.price, sigma: td.sigma || 0.018,
         low: td.ppl_low, mode: td.ppl_mode, high: td.ppl_high
       });
-      await sql`
-        INSERT INTO charts (symbol, date, chart_2d_path, chart_3d_path, sigma)
-        VALUES (${td.symbol}, ${today}, ${result.path2d}, ${result.path3d}, ${td.sigma})
-        ON CONFLICT (symbol, date) DO UPDATE SET
-          chart_2d_path = EXCLUDED.chart_2d_path,
-          chart_3d_path = EXCLUDED.chart_3d_path,
-          generated_at = CURRENT_TIMESTAMP
-      `;
+      await supabase.from('charts').upsert({
+        symbol: td.symbol,
+        date: today,
+        chart_2d_path: result.path2d,
+        chart_3d_path: result.path3d,
+        sigma: td.sigma,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'symbol,date' });
       results.push({ symbol: td.symbol, success: true, path2d: result.path2d });
     } catch (err) {
       results.push({ symbol: td.symbol, success: false, error: err.message });
@@ -106,12 +121,17 @@ router.post('/generate-all', async (req, res) => {
 router.get('/latest/:symbol', async (req, res) => {
   const { symbol } = req.params;
   const today = new Date().toISOString().split('T')[0];
-  const { rows } = await sql`
-    SELECT * FROM charts WHERE symbol = ${symbol} AND date = ${today}
-    ORDER BY generated_at DESC LIMIT 1
-  `;
-  if (!rows.length) return res.status(404).json({ error: 'No chart for today' });
-  const c = rows[0];
+  const { data, error } = await supabase
+    .from('charts')
+    .select('*')
+    .eq('symbol', symbol)
+    .eq('date', today)
+    .order('generated_at', { ascending: false })
+    .limit(1);
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data || !data.length) return res.status(404).json({ error: 'No chart for today' });
+  const c = data[0];
   res.json({ symbol, path2d: c.chart_2d_path, path3d: c.chart_3d_path, generatedAt: c.generated_at });
 });
 
