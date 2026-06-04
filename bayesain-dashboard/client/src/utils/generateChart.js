@@ -12,8 +12,9 @@ const TIMEFRAME_CONFIG = {
   '30min':{ stepsPerDay: 13,   horizonDays: 2,   label: '30-Min' },
 };
 
-// After simulation completes, overlay the PPL level lines using the exact values
-// syncTri() set in the HTML — these are the authoritative levels for this chart.
+// After simulation completes, overlay the actual PPL level lines.
+// The 4 random stdevLines bayesain.html draws look like price targets but aren't —
+// we cover their right-side labels and replace them with our real PPL labels.
 function overlayPPLLines(doc, win, { pplLow, pplMode, pplHigh }) {
   if (pplLow == null || pplHigh == null) return;
   const args = win._lastDrawArgs;
@@ -44,37 +45,57 @@ function overlayPPLLines(doc, win, { pplLow, pplMode, pplHigh }) {
   const W   = canvas.width / dpr;
   const H   = canvas.height / dpr;
 
+  // Match bayesain.html layout constants exactly
   const marginL = 72, marginT = 20, marginB = 44;
   const marginR = W - marginL - Math.floor((W - marginL - 8) * 0.81);
   const pw      = (W - marginL - marginR) * 0.77;
   const ph      = H - marginT - marginB;
   const toY     = v => marginT + (1 - (v - yMin) / (yMax - yMin)) * ph;
 
+  // lineEndX matches where bayesain.html draws the stdevLine labels
+  const lineEndX = marginL + pw * 1.12;
+
   const ctx = canvas.getContext('2d');
   ctx.save();
 
-  const lines = [
-    { v: pplLow,  col: 'rgba(248,113,113,1)', lbl: `PPL-L  $${pplLow.toFixed(2)}`  },
-    { v: pplMode, col: 'rgba(251,191,36,1)',  lbl: `PPL-M  $${pplMode.toFixed(2)}` },
-    { v: pplHigh, col: 'rgba(74,222,128,1)',  lbl: `PPL-H  $${pplHigh.toFixed(2)}` },
+  // Erase the random stdevLine labels on the right side
+  if (frozenLines && frozenLines.length > 0) {
+    ctx.fillStyle = 'rgba(7,9,15,1)';
+    frozenLines.forEach(fl => {
+      const y = toY(fl.v);
+      if (y >= marginT - 5 && y <= marginT + ph + 5) {
+        ctx.fillRect(lineEndX + 1, y - 13, W - lineEndX + 5, 26);
+      }
+    });
+  }
+
+  // Draw the real PPL lines and labels in the same right-side position
+  const pplLines = [
+    { v: pplLow,  col: '#f87171', lbl: `PPL-L  $${pplLow.toFixed(2)}`  },
+    { v: pplMode, col: '#fbbf24', lbl: `PPL-M  $${pplMode.toFixed(2)}` },
+    { v: pplHigh, col: '#4ade80', lbl: `PPL-H  $${pplHigh.toFixed(2)}` },
   ];
 
-  lines.forEach(({ v, col, lbl }) => {
+  pplLines.forEach(({ v, col, lbl }) => {
     const y = toY(v);
     if (y < marginT - 2 || y > marginT + ph + 2) return;
+
+    // Dashed line across the full plot width
     ctx.strokeStyle = col;
     ctx.lineWidth   = 2;
     ctx.setLineDash([10, 5]);
     ctx.beginPath();
     ctx.moveTo(marginL, y);
-    ctx.lineTo(marginL + pw, y);
+    ctx.lineTo(lineEndX, y);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Label on the right, same position as the erased stdevLine labels
     ctx.fillStyle    = col;
     ctx.font         = 'bold 13px IBM Plex Mono, monospace';
-    ctx.textAlign    = 'right';
+    ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(lbl, marginL - 5, y);
+    ctx.fillText(lbl, lineEndX + 5, y);
   });
 
   ctx.restore();
