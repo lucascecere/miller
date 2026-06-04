@@ -12,103 +12,45 @@ const TIMEFRAME_CONFIG = {
   '30min':{ stepsPerDay: 13,   horizonDays: 2,   label: '30-Min' },
 };
 
-// After simulation completes, overlay the actual PPL level lines.
-// The 4 random stdevLines bayesain.html draws look like price targets but aren't —
-// we cover their right-side labels and replace them with our real PPL labels.
-function overlayPPLLines(doc, win, { pplLow, pplMode, pplHigh }) {
-  if (pplLow == null || pplHigh == null) return;
-  const args = win._lastDrawArgs;
-  if (!args) return;
-
-  const allPaths    = args[0];
-  const frozenLines = args[11];
-  const s0val       = args[7];
-
-  let yMin = Infinity, yMax = -Infinity;
-  allPaths.forEach(path => path.forEach(v => {
-    if (v < yMin) yMin = v;
-    if (v > yMax) yMax = v;
-  }));
-  yMin = Math.min(yMin, s0val);
-  yMax = Math.max(yMax, s0val);
-  if (frozenLines) frozenLines.forEach(fl => {
-    yMin = Math.min(yMin, fl.v);
-    yMax = Math.max(yMax, fl.v);
-  });
-  const pad = (yMax - yMin) * 0.06;
-  yMin -= pad;
-  yMax += pad;
-
-  const canvas = doc.getElementById('c');
-  if (!canvas) return;
-  const dpr = win.devicePixelRatio || 1;
-  const W   = canvas.width / dpr;
-  const H   = canvas.height / dpr;
-
-  // Match bayesain.html layout constants exactly
-  const marginL = 72, marginT = 20, marginB = 44;
-  const marginR = W - marginL - Math.floor((W - marginL - 8) * 0.81);
-  const pw      = (W - marginL - marginR) * 0.77;
-  const ph      = H - marginT - marginB;
-  const toY     = v => marginT + (1 - (v - yMin) / (yMax - yMin)) * ph;
-
-  // lineEndX matches where bayesain.html draws the stdevLine labels
-  const lineEndX = marginL + pw * 1.12;
-
-  const ctx = canvas.getContext('2d');
-  ctx.save();
-
-  // Erase the random stdevLine labels on the right side
-  if (frozenLines && frozenLines.length > 0) {
-    ctx.fillStyle = 'rgba(7,9,15,1)';
-    frozenLines.forEach(fl => {
-      const y = toY(fl.v);
-      if (y >= marginT - 5 && y <= marginT + ph + 5) {
-        ctx.fillRect(lineEndX + 1, y - 13, W - lineEndX + 5, 26);
-      }
-    });
-  }
-
-  // Draw the real PPL lines and labels in the same right-side position
-  const pplLines = [
-    { v: pplLow,  col: '#f87171', lbl: `PPL-L  $${pplLow.toFixed(2)}`  },
-    { v: pplMode, col: '#fbbf24', lbl: `PPL-M  $${pplMode.toFixed(2)}` },
-    { v: pplHigh, col: '#4ade80', lbl: `PPL-H  $${pplHigh.toFixed(2)}` },
+// Replaces the random stdevLines section in bayesain.html's draw() with code
+// that draws the actual PPL levels (triLow/triMode/triHigh from syncTri).
+// Runs inside draw() so it has direct access to ctx, toY, marginL, pw, yMin, yMax.
+const PPL_DRAW_CODE = `
+  const _triLow  = parseFloat(document.getElementById('triLow').value)  || s0 * 0.93;
+  const _triMode = parseFloat(document.getElementById('triMode').value) || s0;
+  const _triHigh = parseFloat(document.getElementById('triHigh').value) || s0 * 1.07;
+  const stdevLines = [
+    { v: _triHigh, label: 'PPL-H', col: '#00FF41' },
+    { v: _triMode, label: 'PPL-M', col: '#fbbf24' },
+    { v: _triLow,  label: 'PPL-L', col: '#FF2020' },
   ];
-
-  pplLines.forEach(({ v, col, lbl }) => {
+  const _pplEndX = marginL + pw * 1.12;
+  stdevLines.forEach(({ v, label, col }) => {
+    if (v < yMin || v > yMax) return;
     const y = toY(v);
-    if (y < marginT - 2 || y > marginT + ph + 2) return;
-
-    // Dashed line across the full plot width
-    ctx.strokeStyle = col;
-    ctx.lineWidth   = 2;
     ctx.setLineDash([10, 5]);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(marginL, y);
-    ctx.lineTo(lineEndX, y);
+    ctx.lineTo(_pplEndX, y);
     ctx.stroke();
     ctx.setLineDash([]);
-
-    // Label on the right, same position as the erased stdevLine labels
-    ctx.fillStyle    = col;
-    ctx.font         = 'bold 13px IBM Plex Mono, monospace';
-    ctx.textAlign    = 'left';
+    ctx.font = 'bold 13px IBM Plex Mono, monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(lbl, lineEndX + 5, y);
+    ctx.fillText(label + '  $' + v.toFixed(2), _pplEndX + 5, y);
+    ctx.textBaseline = 'alphabetic';
   });
+  ctx.setLineDash([]);
 
-  ctx.restore();
-}
 
-// Generates a single timeframe chart.
-// Returns { data2d, data3d, upPct, timeframe, pplLow, pplMode, pplHigh }
-// where pplLow/Mode/High are read directly from bayesain.html's syncTri() —
-// the same values the simulation used. These are the source of truth.
+`;
+
 export async function generateChartInBrowser({
   s0, sigma, band,
   ticker = '', timeframe = 'daily', paths = 120,
-  // pplLow/Mode/High are optional overrides; if omitted, we read from the HTML
   pplLow: pplLowIn = null, pplMode: pplModeIn = null, pplHigh: pplHighIn = null,
 }) {
   const cfg         = TIMEFRAME_CONFIG[timeframe] || TIMEFRAME_CONFIG.daily;
@@ -118,11 +60,21 @@ export async function generateChartInBrowser({
   const today      = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const annotation = [`$${ticker}`, today, cfg.label].filter(Boolean).join('   ');
 
-  const res  = await fetch('/bayesain.html');
-  let html   = await res.text();
-  html       = html.replace(/syncTri\(\);\s*[\s\S]*?run\(\);/, 'syncTri();');
+  const res = await fetch('/bayesain.html');
+  let html  = await res.text();
 
-  const blob   = new Blob([html], { type: 'text/html' });
+  // Prevent auto-run on load
+  html = html.replace(/syncTri\(\);\s*[\s\S]*?run\(\);/, 'syncTri();');
+
+  // Replace the random stdevLines section with actual PPL level lines.
+  // The regex matches from "let stdevLines;" through the closing setLineDash
+  // and the blank lines that follow — the rest of draw() is untouched.
+  html = html.replace(
+    /  let stdevLines;[\s\S]*?  ctx\.setLineDash\(\[\]\);\n\n\n/,
+    PPL_DRAW_CODE
+  );
+
+  const blob    = new Blob([html], { type: 'text/html' });
   const blobUrl = URL.createObjectURL(blob);
 
   return new Promise((resolve, reject) => {
@@ -136,26 +88,24 @@ export async function generateChartInBrowser({
       if (document.body.contains(iframe)) document.body.removeChild(iframe);
     };
 
-    const timeout = setTimeout(() => { cleanup(); reject(new Error('Chart generation timed out')); }, 20000);
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Chart generation timed out')); }, 25000);
 
     iframe.onload = () => {
       try {
         const doc = iframe.contentDocument;
         const win = iframe.contentWindow;
 
-        // Set s0 — this triggers oninput="syncTri()" which sets triLow/triMode/triHigh
+        // Set s0 — triggers syncTri() which sets triLow/triMode/triHigh
         const s0El = doc.getElementById('s0');
         s0El.value = s0;
         s0El.dispatchEvent(new Event('input', { bubbles: true }));
 
-        // Read PPL values directly from bayesain.html after syncTri fires.
-        // These are the authoritative values — same ones used in the simulation.
+        // Read PPL values from the HTML after syncTri fires — source of truth
         const pplLow  = pplLowIn  != null ? pplLowIn  : parseFloat(doc.getElementById('triLow').value);
         const pplMode = pplModeIn != null ? pplModeIn : parseFloat(doc.getElementById('triMode').value);
         const pplHigh = pplHighIn != null ? pplHighIn : parseFloat(doc.getElementById('triHigh').value);
 
-        // bayesain.html sigma input = annualized vol (total spread over the full simulation).
-        // scaledSigma is per-step; multiply by sqrt(steps) to convert back to annualized.
+        // bayesain.html sigma = annualized vol; scaledSigma is per-step, convert back
         doc.getElementById('sigma').value  = scaledSigma * Math.sqrt(steps);
         if (band != null) doc.getElementById('bandMult').value = band;
         doc.getElementById('nPaths').value = paths;
@@ -171,9 +121,6 @@ export async function generateChartInBrowser({
         setTimeout(() => {
           try {
             clearTimeout(timeout);
-
-            // Overlay the PPL lines using the HTML-sourced values
-            try { overlayPPLLines(doc, win, { pplLow, pplMode, pplHigh }); } catch (_) {}
 
             const canvas2d = doc.getElementById('c');
             const data2d   = canvas2d ? canvas2d.toDataURL('image/jpeg', 0.9) : null;
@@ -203,7 +150,6 @@ export async function generateChartInBrowser({
   });
 }
 
-// Generates the daily chart only — single source of truth for PPL levels.
 export async function generateAllCharts({ s0, sigma, band, ticker }) {
   const daily = await generateChartInBrowser({ s0, sigma, band, ticker, timeframe: 'daily' });
   return [daily];
