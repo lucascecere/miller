@@ -180,14 +180,10 @@ export async function generateChartInBrowser({
   });
 }
 
-// Generates all three timeframes in sequence, reusing the PPL values from the
-// daily run so all charts are stamped with exactly the same levels.
+// Generates the daily chart only — single source of truth for PPL levels.
 export async function generateAllCharts({ s0, sigma, band, ticker }) {
   const daily = await generateChartInBrowser({ s0, sigma, band, ticker, timeframe: 'daily' });
-  const { pplLow, pplMode, pplHigh } = daily;
-  const hr2   = await generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '2hr',   pplLow, pplMode, pplHigh });
-  const min30 = await generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '30min', pplLow, pplMode, pplHigh });
-  return [daily, hr2, min30];
+  return [daily];
 }
 
 export function chartSrc(path) {

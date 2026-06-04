@@ -119,7 +119,7 @@ export default function PostView() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <ChartViewer ticker={ticker} tickerData={data} />
+            <ChartViewer ticker={ticker} tickerData={data} onRegenerated={loadData} />
 
             {data.pplLow && (
               <div style={sectionStyle}>
