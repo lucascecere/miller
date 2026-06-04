@@ -154,7 +154,9 @@ export async function generateChartInBrowser({
         const pplMode = pplModeIn != null ? pplModeIn : parseFloat(doc.getElementById('triMode').value);
         const pplHigh = pplHighIn != null ? pplHighIn : parseFloat(doc.getElementById('triHigh').value);
 
-        doc.getElementById('sigma').value  = scaledSigma;
+        // bayesain.html sigma input = annualized vol (total spread over the full simulation).
+        // scaledSigma is per-step; multiply by sqrt(steps) to convert back to annualized.
+        doc.getElementById('sigma').value  = scaledSigma * Math.sqrt(steps);
         if (band != null) doc.getElementById('bandMult').value = band;
         doc.getElementById('nPaths').value = paths;
         doc.getElementById('nSteps').value = steps;
