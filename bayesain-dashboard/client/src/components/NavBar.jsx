@@ -36,7 +36,7 @@ export default function NavBar() {
           letterSpacing: '0.05em', textDecoration: 'none', color: 'white',
         }}
       >
-        BAYES<span style={{ color: '#7DF9FF' }}>AIn</span>
+        Bayes<span style={{ color: '#7DF9FF' }}>AIn</span>
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
