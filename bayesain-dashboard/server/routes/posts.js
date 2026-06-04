@@ -32,7 +32,9 @@ router.get('/:symbol', async (req, res) => {
     let { data: postRows } = await supabase.from('posts').select('*').eq('symbol', symbol).eq('date', today);
     let post = postRows && postRows[0];
 
-    if (!post && tickerData) {
+    // Always recompute the tweet from live ticker_data so it matches the chart and PPL cards.
+    // Only skip if the post has already been marked as posted (preserve the record).
+    if (tickerData && (!post || post.status !== 'posted')) {
       const tweetText = generateTweetText(symbol, {
         price: tickerData.price,
         pplLow: tickerData.ppl_low,
@@ -45,11 +47,11 @@ router.get('/:symbol', async (req, res) => {
         symbol,
         date: today,
         tweet_text: tweetText,
-        status: 'draft',
+        status: post ? post.status : 'draft',
         ppl_high: tickerData.ppl_high,
         ppl_low: tickerData.ppl_low,
         price_at_post: tickerData.price
-      }, { onConflict: 'symbol,date', ignoreDuplicates: true });
+      }, { onConflict: 'symbol,date' });
       const { data: newPost } = await supabase.from('posts').select('*').eq('symbol', symbol).eq('date', today);
       post = newPost && newPost[0];
     }
