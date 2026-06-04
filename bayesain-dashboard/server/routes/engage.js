@@ -93,6 +93,52 @@ const MOCK_ENGAGE_OUT = [
   }
 ];
 
+function classifyTweet(text) {
+  const t = text.toLowerCase();
+  if (/doesn'?t work|all systems fail|prove it|show me edge|just hype|scam|i don'?t buy|skeptic|not sure i buy|random|backtested/.test(t)) return 'skeptic';
+  if (/how does|what is ppl|what'?s ppl|explain|how do you|what does bayesain|how does it work|what are ppl|curious/.test(t)) return 'curious';
+  if (/\$[a-z]{1,5}/i.test(text) && /watching|levels?|setup|position|long|short|trade|calls?/.test(t)) return 'trader';
+  if (/level|target|price|where does|going to|prediction|call|forecast/.test(t)) return 'market_call';
+  return 'default';
+}
+
+function draftReply(text, ticker) {
+  const type = classifyTweet(text);
+  const sym = ticker || (text.match(/\$([A-Z]{1,5})/)?.[1]);
+
+  if (type === 'skeptic') {
+    return "Fair point — most systems don't. BayesAIn uses Bayesian probability to find levels where markets have historically reacted. The track record is public. Worth watching before writing it off.";
+  }
+  if (type === 'curious') {
+    return "PPL stands for Posterior Predictive Level — price zones identified by AI-driven Bayesian analysis where markets have a higher probability of reacting. We post them daily for free. Follow to track them.";
+  }
+  if (type === 'trader' && sym) {
+    return `Watching $${sym} closely too. Our BayesAIn model has key levels mapped right now. Let's see if they hold. 👀`;
+  }
+  if (type === 'market_call') {
+    return "BayesAIn flagged this level earlier. The Bayesian model is tracking it — watching for confirmation. Following your read too.";
+  }
+  return "Interesting setup. BayesAIn is watching the market right now — Bayesian model has key levels mapped. Follow along to track the calls.";
+}
+
+router.post('/draft-reply', (req, res) => {
+  const { text, author_handle, follower_count } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'text required' });
+
+  const fc = parseInt(follower_count, 10) || 0;
+  const priority = fc >= 5000 ? 'HIGH' : fc >= 500 ? 'MEDIUM' : 'LOW';
+
+  res.json({
+    id: `manual-${Date.now()}`,
+    text: text.trim(),
+    author_handle: author_handle ? (author_handle.startsWith('@') ? author_handle : '@' + author_handle) : '@unknown',
+    follower_count: fc || null,
+    priority,
+    suggested_reply: draftReply(text),
+    is_manual: true,
+  });
+});
+
 router.get('/feed', (req, res) => {
   res.json({
     reply_to_us: MOCK_REPLY_TO_US,
