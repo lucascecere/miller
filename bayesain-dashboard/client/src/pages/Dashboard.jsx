@@ -138,7 +138,8 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1rem 1.5rem 0' }}>
+      {/* Action bar */}
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 1.5rem 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {statusMsg && <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#7DF9FF' }}>{statusMsg}</span>}
@@ -184,109 +185,112 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem' }}>
+      {/* Two-column layout */}
+      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem', display: 'grid', gridTemplateColumns: '2fr 3fr', gap: '1.5rem', alignItems: 'start' }}>
 
-        {openResults.length > 0 && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={labelStyle}>PREDICTIONS TO CHECK</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {openResults.map((r, i) => {
-                const { label, bg, color } = resultStatusLabel(r.result_status);
-                return (
-                  <div key={i} style={{ background: '#0c0e17', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#7DF9FF' }}>{r.symbol}</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#c8cad8' }}>
-                        Called ${r.ppl_high}/{r.ppl_low}
-                      </span>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#6b6e85' }}>
-                        Now ${r.current_price}
-                      </span>
-                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', background: bg, color }}>
-                        {label}
-                      </span>
+        {/* Left column — schedule + predictions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '68px' }}>
+
+          {openResults.length > 0 && (
+            <div>
+              <div style={labelStyle}>PREDICTIONS TO CHECK</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {openResults.map((r, i) => {
+                  const { label, bg, color } = resultStatusLabel(r.result_status);
+                  return (
+                    <div key={i} style={{ background: '#0c0e17', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#7DF9FF', fontSize: '0.9rem' }}>{r.symbol}</span>
+                          <span style={{ display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '0.55rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', background: bg, color }}>{label}</span>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/post/${r.symbol}?result=true`)}
+                          style={{ fontSize: '0.7rem', fontFamily: 'monospace', border: '1px solid rgba(34,197,94,0.5)', color: '#4ade80', background: 'transparent', padding: '3px 8px', borderRadius: '5px', cursor: 'pointer' }}
+                          onMouseOver={e => e.target.style.background = 'rgba(34,197,94,0.08)'}
+                          onMouseOut={e => e.target.style.background = 'transparent'}
+                        >
+                          Post Result
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#c8cad8' }}>Called ${r.ppl_high} / ${r.ppl_low}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#6b6e85' }}>Now ${r.current_price}</span>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => navigate(`/post/${r.symbol}?result=true`)}
-                      style={{ fontSize: '0.75rem', fontFamily: 'monospace', border: '1px solid rgba(34,197,94,0.5)', color: '#4ade80', background: 'transparent', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer' }}
-                      onMouseOver={e => e.target.style.background = 'rgba(34,197,94,0.08)'}
-                      onMouseOut={e => e.target.style.background = 'transparent'}
-                    >
-                      Post Result
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {tickers.length > 0 && schedule.length > 0 && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={labelStyle}>TODAY'S SCHEDULE</div>
-            <div style={{ background: '#0c0e17', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '0.75rem 1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 60px', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.6rem', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b6e85' }}>Time</span>
-                <span style={{ fontSize: '0.6rem', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b6e85' }}>Ticker</span>
-                <span style={{ fontSize: '0.6rem', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b6e85' }}>Priority</span>
-                <span style={{ fontSize: '0.6rem', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b6e85' }}>Done</span>
+                  );
+                })}
               </div>
-              {schedule.map(({ timeStr, symbol, priority_score }) => {
-                const done = doneTickers.includes(symbol);
-                return (
-                  <div
-                    key={symbol}
-                    style={{
-                      display: 'grid', gridTemplateColumns: '80px 80px 1fr 60px', gap: '8px',
-                      alignItems: 'center', padding: '6px 0',
-                      borderTop: '1px solid rgba(255,255,255,0.04)',
-                      background: done ? 'rgba(34,197,94,0.05)' : 'transparent',
-                    }}
-                  >
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: done ? '#6b6e85' : '#c8cad8' }}>{timeStr}</span>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 700, color: done ? '#6b6e85' : '#7DF9FF' }}>{symbol}</span>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: done ? '#6b6e85' : '#c8cad8' }}>{priority_score}</span>
-                    <input
-                      type="checkbox"
-                      checked={done}
-                      onChange={() => {
-                        setDoneTickers(prev =>
-                          done ? prev.filter(s => s !== symbol) : [...prev, symbol]
-                        );
-                      }}
-                      style={{ accentColor: '#7DF9FF', cursor: 'pointer', width: '16px', height: '16px' }}
-                    />
-                  </div>
-                );
-              })}
             </div>
-          </div>
-        )}
+          )}
 
-        {loading ? (
-          <div style={{ textAlign: 'center', color: '#6b6e85', fontFamily: 'monospace', marginTop: '5rem' }}>Loading tickers…</div>
-        ) : tickers.length === 0 ? (
-          <div style={{ textAlign: 'center', marginTop: '5rem' }}>
-            <p style={{ color: '#6b6e85', fontFamily: 'monospace', marginBottom: '1rem' }}>No price data yet.</p>
-            <button
-              onClick={handleRefresh}
-              style={{ fontFamily: 'monospace', border: '1px solid rgba(125,249,255,0.6)', color: '#7DF9FF', background: 'transparent', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}
-            >
-              Refresh Prices Now
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#6b6e85', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
-              {tickers.length} tickers — sorted by priority
+          {tickers.length > 0 && schedule.length > 0 && (
+            <div>
+              <div style={labelStyle}>TODAY'S SCHEDULE</div>
+              <div style={{ background: '#0c0e17', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '0.6rem 0.875rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '72px 56px 1fr 32px', gap: '6px', alignItems: 'center', marginBottom: '4px' }}>
+                  {['Time','Ticker','Priority',''].map(h => (
+                    <span key={h} style={{ fontSize: '0.55rem', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b6e85' }}>{h}</span>
+                  ))}
+                </div>
+                {schedule.map(({ timeStr, symbol, priority_score }) => {
+                  const done = doneTickers.includes(symbol);
+                  return (
+                    <div
+                      key={symbol}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '72px 56px 1fr 32px', gap: '6px',
+                        alignItems: 'center', padding: '5px 0',
+                        borderTop: '1px solid rgba(255,255,255,0.04)',
+                        background: done ? 'rgba(34,197,94,0.04)' : 'transparent',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: done ? '#6b6e85' : '#c8cad8' }}>{timeStr}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700, color: done ? '#6b6e85' : '#7DF9FF' }}>{symbol}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: done ? '#6b6e85' : '#c8cad8' }}>{priority_score}</span>
+                      <input
+                        type="checkbox"
+                        checked={done}
+                        onChange={() => setDoneTickers(prev => done ? prev.filter(s => s !== symbol) : [...prev, symbol])}
+                        style={{ accentColor: '#7DF9FF', cursor: 'pointer', width: '14px', height: '14px' }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {tickers.map(t => (
-                <TickerCard key={t.symbol} ticker={t} onChartGenerated={loadTickers} />
-              ))}
+          )}
+
+        </div>
+
+        {/* Right column — ticker list */}
+        <div>
+          {loading ? (
+            <div style={{ textAlign: 'center', color: '#6b6e85', fontFamily: 'monospace', marginTop: '5rem' }}>Loading tickers…</div>
+          ) : tickers.length === 0 ? (
+            <div style={{ textAlign: 'center', marginTop: '5rem' }}>
+              <p style={{ color: '#6b6e85', fontFamily: 'monospace', marginBottom: '1rem' }}>No price data yet.</p>
+              <button
+                onClick={handleRefresh}
+                style={{ fontFamily: 'monospace', border: '1px solid rgba(125,249,255,0.6)', color: '#7DF9FF', background: 'transparent', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+              >
+                Refresh Prices Now
+              </button>
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              <div style={{ fontSize: '0.6rem', fontFamily: 'monospace', color: '#6b6e85', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
+                {tickers.length} tickers — sorted by priority
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {tickers.map(t => (
+                  <TickerCard key={t.symbol} ticker={t} onChartGenerated={loadTickers} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
       </main>
 
       {showThread && <ThreadModal onClose={() => setShowThread(false)} />}
