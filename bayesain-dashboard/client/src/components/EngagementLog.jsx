@@ -37,7 +37,7 @@ export default function EngagementLog() {
     setLoadingEntries(true);
     try {
       const data = await get('/api/engage/log/today');
-      setEntries(data || []);
+      setEntries(data.entries || []);
     } catch {
       setEntries([]);
     } finally {
