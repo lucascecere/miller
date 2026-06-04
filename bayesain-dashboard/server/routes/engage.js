@@ -1,153 +1,150 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../db/db');
+const { generateReply, generateThread, generateInformational, generateWeCalledIt } = require('../services/aiGenerator');
+const { fetchNews } = require('../services/newsService');
 
-const MOCK_REPLY_TO_US = [
-  {
-    id: '1',
-    text: 'Checked out @LukeMillerPHD BayesAIn levels — $SPY called it exactly. Following now.',
-    author_handle: '@TradingJoe',
-    follower_count: 3200,
-    priority: 'HIGH',
-    suggested_reply: "Thanks for tracking it! BayesAIn uses Bayesian probability to map these levels in advance. More calls daily — stay tuned."
-  },
-  {
-    id: '2',
-    text: 'The $QQQ level you posted last week was spot on. What\'s your model using for IV inputs?',
-    author_handle: '@OptionsFlow99',
-    follower_count: 8700,
-    priority: 'HIGH',
-    suggested_reply: "We pull realized IV and blend it with the Bayesian prior — the model weights recent vol regimes more heavily. Happy to break it down in a post if there\'s interest."
-  },
-  {
-    id: '3',
-    text: 'Following @LukeMillerPHD for the AI probability levels. Different approach from the usual TA noise.',
-    author_handle: '@QuietTrader_K',
-    follower_count: 1100,
-    priority: 'MEDIUM',
-    suggested_reply: "Appreciate that — the idea is to quantify what the market is pricing in, not draw lines and hope. Glad it\'s resonating."
-  },
-  {
-    id: '4',
-    text: 'Not sure I buy the Bayesian angle here. How is this different from just Monte Carlo sims?',
-    author_handle: '@SkepticalMacro',
-    follower_count: 5400,
-    priority: 'MEDIUM',
-    suggested_reply: "Fair push. The key difference is the prior — we update continuously with realized vol and price action rather than assuming a flat distribution. The levels shift as the market regime shifts."
-  },
-  {
-    id: '5',
-    text: 'Bookmarking this $SOXL call. Will report back in 5 days.',
-    author_handle: '@SemiFan2024',
-    follower_count: 890,
-    priority: 'LOW',
-    suggested_reply: "Love it — that\'s exactly how it should work. Accountability in public. Tag us when you report back."
+function requireAI(res) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    res.status(503).json({ error: 'AI not configured' });
+    return false;
   }
-];
-
-const MOCK_ENGAGE_OUT = [
-  {
-    id: '10',
-    text: 'Elliott Wave says $SPY is in wave 3 extension. Target: 580.',
-    author_handle: '@EWTAnalyst',
-    follower_count: 12400,
-    priority: 'HIGH',
-    source_query: '"Elliott Wave" finance',
-    suggested_reply: "Interesting wave count. BayesAIn has $SPY with a high-probability zone at $565 — Bayesian model shows that level has historically caused reactions. Watching it closely."
-  },
-  {
-    id: '11',
-    text: 'IV crush is real — $QQQ options are way overpriced heading into FOMC.',
-    author_handle: '@VolTrader_LA',
-    follower_count: 9800,
-    priority: 'HIGH',
-    source_query: 'implied volatility ETF',
-    suggested_reply: "Agreed on the crush risk. Our model flags when IV is elevated relative to the Bayesian prior — $QQQ is showing that exact signal right now. Worth watching the 48-hour window."
-  },
-  {
-    id: '12',
-    text: 'Most retail traders don\'t understand probability. They see a 60% win rate and think it\'s gospel.',
-    author_handle: '@ProbTrading',
-    follower_count: 22100,
-    priority: 'HIGH',
-    source_query: 'probability trading',
-    suggested_reply: "Exactly right. Win rate without position sizing and expected value math is just noise. BayesAIn focuses on probability zones, not predictions — different mental model entirely."
-  },
-  {
-    id: '13',
-    text: 'AI in trading is mostly hype. Show me edge, not just buzzwords.',
-    author_handle: '@AlgoSkeptic',
-    follower_count: 6700,
-    priority: 'MEDIUM',
-    source_query: 'AI trading signals',
-    suggested_reply: "Respect the skepticism — it\'s warranted. We post levels publicly before they hit and track results openly. The track record speaks louder than the pitch. Check the pinned thread."
-  },
-  {
-    id: '14',
-    text: 'Anyone else using Bayesian models for their ETF watchlist? Looking for tools.',
-    author_handle: '@DataDrivenFin',
-    follower_count: 3300,
-    priority: 'MEDIUM',
-    source_query: 'Bayesian trading model',
-    suggested_reply: "That\'s exactly what BayesAIn does — maps 120 price paths per ETF and surfaces the high-probability zones. @LukeMillerPHD posts the levels daily. Might be worth a follow."
-  }
-];
-
-function classifyTweet(text) {
-  const t = text.toLowerCase();
-  if (/doesn'?t work|all systems fail|prove it|show me edge|just hype|scam|i don'?t buy|skeptic|not sure i buy|random|backtested/.test(t)) return 'skeptic';
-  if (/how does|what is ppl|what'?s ppl|explain|how do you|what does bayesain|how does it work|what are ppl|curious/.test(t)) return 'curious';
-  if (/\$[a-z]{1,5}/i.test(text) && /watching|levels?|setup|position|long|short|trade|calls?/.test(t)) return 'trader';
-  if (/level|target|price|where does|going to|prediction|call|forecast/.test(t)) return 'market_call';
-  return 'default';
+  return true;
 }
 
-function draftReply(text, ticker) {
-  const type = classifyTweet(text);
-  const sym = ticker || (text.match(/\$([A-Z]{1,5})/)?.[1]);
+// POST /api/engage/reply
+// Body: { tweetText, authorHandle?, authorFollowers?, ticker?, pplLevels?, userIntent? }
+// Response: { reply: string }
+router.post('/reply', async (req, res) => {
+  if (!requireAI(res)) return;
+  try {
+    const { tweetText, authorHandle, authorFollowers, ticker, pplLevels, userIntent } = req.body;
+    if (!tweetText || !tweetText.trim()) return res.status(400).json({ error: 'tweetText required' });
 
-  if (type === 'skeptic') {
-    return "Fair point — most systems don't. BayesAIn uses Bayesian probability to find levels where markets have historically reacted. The track record is public. Worth watching before writing it off.";
+    const reply = await generateReply({ tweetText, authorHandle, authorFollowers, ticker, pplLevels, userIntent });
+    res.json({ reply });
+  } catch (err) {
+    console.error('POST /engage/reply error:', err);
+    res.status(500).json({ error: err.message });
   }
-  if (type === 'curious') {
-    return "PPL stands for Posterior Predictive Level — price zones identified by AI-driven Bayesian analysis where markets have a higher probability of reacting. We post them daily for free. Follow to track them.";
-  }
-  if (type === 'trader' && sym) {
-    return `Watching $${sym} closely too. Our BayesAIn model has key levels mapped right now. Let's see if they hold. 👀`;
-  }
-  if (type === 'market_call') {
-    return "BayesAIn flagged this level earlier. The Bayesian model is tracking it — watching for confirmation. Following your read too.";
-  }
-  return "Interesting setup. BayesAIn is watching the market right now — Bayesian model has key levels mapped. Follow along to track the calls.";
-}
-
-router.post('/draft-reply', (req, res) => {
-  const { text, author_handle, follower_count } = req.body;
-  if (!text || !text.trim()) return res.status(400).json({ error: 'text required' });
-
-  const fc = parseInt(follower_count, 10) || 0;
-  const priority = fc >= 5000 ? 'HIGH' : fc >= 500 ? 'MEDIUM' : 'LOW';
-
-  res.json({
-    id: `manual-${Date.now()}`,
-    text: text.trim(),
-    author_handle: author_handle ? (author_handle.startsWith('@') ? author_handle : '@' + author_handle) : '@unknown',
-    follower_count: fc || null,
-    priority,
-    suggested_reply: draftReply(text),
-    is_manual: true,
-  });
 });
 
-router.get('/feed', (req, res) => {
-  res.json({
-    reply_to_us: MOCK_REPLY_TO_US,
-    engage_out: MOCK_ENGAGE_OUT,
-    last_updated: new Date().toISOString(),
-    is_mock: true
-  });
+// POST /api/engage/thread
+// Body: { topic, tickers?, audience?, tweetCount?, newsContext? }
+// tickers: [{ symbol, pplLevels: { low, mode, high } }]
+// audience: 'beginner' | 'casual' | 'active'
+// Response: { thread: string }
+router.post('/thread', async (req, res) => {
+  if (!requireAI(res)) return;
+  try {
+    const { topic, tickers, audience, tweetCount, newsContext } = req.body;
+    if (!topic || !topic.trim()) return res.status(400).json({ error: 'topic required' });
+
+    const thread = await generateThread({ topic, tickers, audience, tweetCount, newsContext });
+    res.json({ thread });
+  } catch (err) {
+    console.error('POST /engage/thread error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// POST /api/engage/informational
+// Body: { topic, category?, format?, audience?, newsContext?, ticker?, pplLevels? }
+// format: 'single' | 'thread' | 'list'
+// audience: 'beginner' | 'intermediate'
+// Response: { content: string }
+router.post('/informational', async (req, res) => {
+  if (!requireAI(res)) return;
+  try {
+    const { topic, category, format, audience, newsContext, ticker, pplLevels } = req.body;
+    if (!topic || !topic.trim()) return res.status(400).json({ error: 'topic required' });
+
+    const content = await generateInformational({ topic, category, format, audience, newsContext, ticker, pplLevels });
+    res.json({ content });
+  } catch (err) {
+    console.error('POST /engage/informational error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/engage/called-it
+// Body: { ticker, postDate, calledLevel, actualPrice, daysElapsed, originalPostUrl?, bounceStrength?, newsContext? }
+// Response: { post: string }
+router.post('/called-it', async (req, res) => {
+  if (!requireAI(res)) return;
+  try {
+    const { ticker, postDate, calledLevel, actualPrice, daysElapsed, originalPostUrl, bounceStrength, newsContext } = req.body;
+    if (!ticker || !postDate || calledLevel == null || actualPrice == null || daysElapsed == null) {
+      return res.status(400).json({ error: 'ticker, postDate, calledLevel, actualPrice, daysElapsed are required' });
+    }
+
+    const post = await generateWeCalledIt({ ticker, postDate, calledLevel, actualPrice, daysElapsed, originalPostUrl, bounceStrength, newsContext });
+    res.json({ post });
+  } catch (err) {
+    console.error('POST /engage/called-it error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/engage/news
+// Response: { items: [{ title, link, source, pubDate }] }
+router.get('/news', async (req, res) => {
+  try {
+    const items = await fetchNews();
+    res.json({ items });
+  } catch (err) {
+    console.error('GET /engage/news error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/engage/log
+// Body: { team_member, minutes, description? }
+// Response: { ok: true, id: string }
+router.post('/log', async (req, res) => {
+  try {
+    const { team_member, minutes, description } = req.body;
+    if (!team_member || minutes == null) return res.status(400).json({ error: 'team_member and minutes are required' });
+
+    const { data, error } = await supabase
+      .from('engagement_log')
+      .insert({ team_member, minutes: parseInt(minutes, 10), description: description || null })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    res.json({ ok: true, id: data.id });
+  } catch (err) {
+    console.error('POST /engage/log error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/engage/log/today
+// Response: { entries: [{ id, team_member, minutes, description, created_at }] }
+router.get('/log/today', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
+
+    const { data, error } = await supabase
+      .from('engagement_log')
+      .select('id, team_member, minutes, description, created_at')
+      .gte('created_at', todayISO)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ entries: data || [] });
+  } catch (err) {
+    console.error('GET /engage/log/today error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/engage/skip
+// Body: { tweet_id }
+// Response: { ok: true }
 router.post('/skip', async (req, res) => {
   try {
     const { tweet_id } = req.body;
