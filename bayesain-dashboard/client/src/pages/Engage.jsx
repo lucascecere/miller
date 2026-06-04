@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { post } from '../api';
 import Layout from '../components/Layout';
 import NewsSidebar from '../components/NewsSidebar';
@@ -263,6 +263,108 @@ function OutputSection({ output, loading, error, onClear }) {
   );
 }
 
+// ─── Image upload zone ────────────────────────────────────────────────────────
+
+function ImageUploadZone({ image, imagePreview, onImageLoad, onClear }) {
+  const fileInputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+
+  function processFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const base64 = dataUrl.split(',')[1];
+      onImageLoad({ base64, mediaType: file.type, previewUrl: dataUrl });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const handlePaste = useCallback((e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        processFile(item.getAsFile());
+        break;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  if (image) {
+    return (
+      <div style={{ position: 'relative', marginBottom: '0.875rem' }}>
+        <label style={labelStyle}>SCREENSHOT</label>
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <img
+            src={imagePreview}
+            alt="Tweet screenshot"
+            style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '0.5rem', border: `1px solid ${colors.borderActive}`, display: 'block' }}
+          />
+          <button
+            onClick={onClear}
+            style={{
+              position: 'absolute', top: '6px', right: '6px',
+              background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)',
+              color: '#c8cad8', borderRadius: '50%', width: '22px', height: '22px',
+              cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.75rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+            }}
+            title="Remove image"
+          >×</button>
+        </div>
+        <div style={{ marginTop: '0.4rem', fontSize: '0.65rem', fontFamily: 'monospace', color: '#4ade80' }}>
+          ✓ Screenshot loaded — Claude will read the tweet + chart directly
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: '0.875rem' }}>
+      <label style={labelStyle}>SCREENSHOT (optional — paste, drag, or click)</label>
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => {
+          e.preventDefault();
+          setDragging(false);
+          processFile(e.dataTransfer.files[0]);
+        }}
+        style={{
+          border: `1px dashed ${dragging ? colors.accent : 'rgba(255,255,255,0.15)'}`,
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          textAlign: 'center',
+          cursor: 'pointer',
+          background: dragging ? 'rgba(125,249,255,0.04)' : 'transparent',
+          transition: 'all 0.15s',
+          color: colors.textSecondary,
+          fontFamily: 'monospace',
+          fontSize: '0.75rem',
+        }}
+        onMouseOver={e => { if (!dragging) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+        onMouseOut={e => { if (!dragging) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+      >
+        Drop screenshot here · Ctrl+V to paste · or click to browse
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={e => processFile(e.target.files[0])}
+      />
+    </div>
+  );
+}
+
 // ─── Tab: Reply ───────────────────────────────────────────────────────────────
 
 function ReplyTab({ newsContext, setNewsContext }) {
@@ -272,28 +374,57 @@ function ReplyTab({ newsContext, setNewsContext }) {
   const [ticker, setTicker] = useState('');
   const [autoData, setAutoData] = useState(null);
 
+  const [image, setImage] = useState(null);         // { base64, mediaType }
+  const [imagePreview, setImagePreview] = useState('');
+
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  function handleImageLoad({ base64, mediaType, previewUrl }) {
+    setImage({ base64, mediaType });
+    setImagePreview(previewUrl);
+  }
+
+  function clearImage() {
+    setImage(null);
+    setImagePreview('');
+  }
+
   async function handleGenerate() {
-    if (!tweetText.trim()) return;
+    const hasText = tweetText.trim();
+    const hasImage = !!image;
+    if (!hasText && !hasImage) return;
+
     setLoading(true);
     setError('');
     setOutput('');
     setAutoData(null);
+
     try {
-      const data = await post('/api/engage/reply', {
-        tweetText: tweetText.trim(),
-        authorHandle: authorHandle.trim(),
-        userIntent: userIntent.trim(),
-        newsContext: newsContext.trim(),
-        ticker: ticker.trim(),
-      });
-      setOutput(data.reply || '');
-      if (data.autoTicker || data.autoPplLevels) {
-        setAutoData({ ticker: data.autoTicker, ppl: data.autoPplLevels });
+      let data;
+      if (hasImage) {
+        data = await post('/api/engage/reply-from-image', {
+          imageBase64: image.base64,
+          mediaType: image.mediaType,
+          authorHandle: authorHandle.trim() || undefined,
+          userIntent: userIntent.trim() || undefined,
+          newsContext: newsContext.trim() || undefined,
+          ticker: ticker.trim() || undefined,
+        });
+      } else {
+        data = await post('/api/engage/reply', {
+          tweetText: tweetText.trim(),
+          authorHandle: authorHandle.trim(),
+          userIntent: userIntent.trim(),
+          newsContext: newsContext.trim(),
+          ticker: ticker.trim(),
+        });
+        if (data.autoTicker || data.autoPplLevels) {
+          setAutoData({ ticker: data.autoTicker, ppl: data.autoPplLevels });
+        }
       }
+      setOutput(data.reply || '');
     } catch (err) {
       setError(err.message || 'Generation failed.');
     } finally {
@@ -301,14 +432,23 @@ function ReplyTab({ newsContext, setNewsContext }) {
     }
   }
 
+  const canGenerate = !loading && (!!tweetText.trim() || !!image);
+
   return (
     <div>
-      <InputField label="Original Tweet">
+      <ImageUploadZone
+        image={image}
+        imagePreview={imagePreview}
+        onImageLoad={handleImageLoad}
+        onClear={clearImage}
+      />
+
+      <InputField label={image ? 'Additional context (optional — Claude will read the screenshot)' : 'Original Tweet'}>
         <StyledTextarea
           value={tweetText}
           onChange={e => setTweetText(e.target.value)}
-          placeholder="Paste tweet text here…"
-          rows={4}
+          placeholder={image ? 'Add any extra context here, or leave blank…' : 'Paste tweet text here…'}
+          rows={image ? 2 : 4}
         />
       </InputField>
 
@@ -346,9 +486,9 @@ function ReplyTab({ newsContext, setNewsContext }) {
       </InputField>
 
       <ActionButton
-        label={loading ? 'Fetching data + generating…' : 'Generate Reply →'}
+        label={loading ? (image ? 'Reading screenshot + generating…' : 'Fetching data + generating…') : 'Generate Reply →'}
         onClick={handleGenerate}
-        disabled={loading || !tweetText.trim()}
+        disabled={!canGenerate}
       />
 
       {autoData && (

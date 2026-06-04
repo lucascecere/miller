@@ -178,4 +178,57 @@ Tone: matter-of-fact confidence. Not bragging. Just showing the work.`;
   return generateTweet(BAYESAIN_SYSTEM_PROMPT, userPrompt, 400);
 }
 
-module.exports = { generateReply, generateThread, generateInformational, generateWeCalledIt };
+async function generateReplyFromImage({ imageBase64, mediaType, authorHandle, userIntent, newsContext, ticker, pplLevels }) {
+  const tickerContext = ticker && pplLevels
+    ? `BayesAIn data available for $${ticker}: Support $${pplLevels.low} | Mode $${pplLevels.mode} | Resistance $${pplLevels.high}. Use only if genuinely relevant.`
+    : '';
+  const authorContext = authorHandle ? `Posted by ${authorHandle}.` : '';
+  const intentContext = userIntent ? `Our goal: ${userIntent}` : '';
+
+  const userPrompt = `You're looking at a screenshot of a tweet (possibly with a chart or image).
+
+${authorContext}
+${tickerContext}
+${newsContext ? `News context: ${newsContext}` : ''}
+${intentContext}
+
+Step 1 — Read the screenshot carefully. Identify:
+- The exact text of the tweet
+- Any price levels, tickers, or chart patterns visible
+- What specific claim or take this person is making
+
+Step 2 — Write a reply that responds to the most specific, interesting, or contestable thing in this tweet. Use the chart data you see if relevant.
+
+Same rules as always:
+- Start in the middle of the thought
+- Reference something specific from the tweet or chart
+- Under 240 characters
+- Only bring in BayesAIn if it adds real value
+${tickerContext ? '- Ticker data provided above — use it if it fits' : ''}
+
+Output the reply only — no labels, no quotes.`;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 300,
+    system: BAYESAIN_SYSTEM_PROMPT,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType || 'image/png',
+            data: imageBase64,
+          },
+        },
+        { type: 'text', text: userPrompt },
+      ],
+    }],
+  });
+
+  return message.content[0].text.trim();
+}
+
+module.exports = { generateReply, generateThread, generateInformational, generateWeCalledIt, generateReplyFromImage };

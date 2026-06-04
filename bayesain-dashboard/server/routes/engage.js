@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../db/db');
-const { generateReply, generateThread, generateInformational, generateWeCalledIt } = require('../services/aiGenerator');
+const { generateReply, generateThread, generateInformational, generateWeCalledIt, generateReplyFromImage } = require('../services/aiGenerator');
 const { fetchNews } = require('../services/newsService');
 
 function requireAI(res) {
@@ -60,6 +60,23 @@ router.post('/reply', async (req, res) => {
     res.json({ reply, autoTicker: ticker || null, autoPplLevels: pplLevels || null });
   } catch (err) {
     console.error('POST /engage/reply error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/engage/reply-from-image
+// Body: { imageBase64, mediaType?, authorHandle?, userIntent?, newsContext?, ticker?, pplLevels? }
+// Response: { reply: string }
+router.post('/reply-from-image', async (req, res) => {
+  if (!requireAI(res)) return;
+  try {
+    const { imageBase64, mediaType, authorHandle, userIntent, newsContext, ticker, pplLevels } = req.body;
+    if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
+
+    const reply = await generateReplyFromImage({ imageBase64, mediaType, authorHandle, userIntent, newsContext, ticker, pplLevels });
+    res.json({ reply });
+  } catch (err) {
+    console.error('POST /engage/reply-from-image error:', err);
     res.status(500).json({ error: err.message });
   }
 });
