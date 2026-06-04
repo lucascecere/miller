@@ -20,7 +20,8 @@ const categories = [
   description="Research publications and working papers by Luke Miller, Associate Professor of Finance at Saint Anselm College. Topics include real options, Bayesian methods, and option pricing."
 >
   <div class="pt-2 pb-8 border-b border-lm-border">
-    <h1 class="font-serif text-3xl font-bold text-lm-text">Research</h1>
+    <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-3">Publications</p>
+    <h1 class="font-serif text-3xl font-normal text-lm-text">Research</h1>
     <p class="text-lm-muted text-sm font-sans mt-2">Working papers, publications, and ongoing projects.</p>
   </div>
 
@@ -28,14 +29,14 @@ const categories = [
   <nav class="flex flex-wrap gap-2 py-5 border-b border-lm-border" aria-label="Filter by category">
     <button
       data-category="all"
-      class="filter-btn text-xs font-sans px-3 py-1.5 rounded-full border border-lm-border text-lm-muted hover:border-lm-accent hover:text-lm-accent transition-colors duration-150 active"
+      class="filter-btn font-mono text-xs px-3 py-1.5 rounded-full border border-lm-border text-lm-muted hover:border-lm-accent hover:text-lm-accent transition-colors duration-150 active"
     >
       All
     </button>
     {categories.map((cat) => (
       <button
         data-category={cat}
-        class="filter-btn text-xs font-sans px-3 py-1.5 rounded-full border border-lm-border text-lm-muted hover:border-lm-accent hover:text-lm-accent transition-colors duration-150"
+        class="filter-btn font-mono text-xs px-3 py-1.5 rounded-full border border-lm-border text-lm-muted hover:border-lm-accent hover:text-lm-accent transition-colors duration-150"
       >
         {cat}
       </button>
@@ -61,8 +62,8 @@ const categories = [
 
 <style>
   .filter-btn.active {
-    border-color: #4A6FA5;
-    color: #4A6FA5;
+    border-color: #3B82F6;
+    color: #3B82F6;
     font-weight: 600;
   }
 </style>

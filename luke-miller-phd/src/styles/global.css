@@ -2,14 +2,17 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-lm-bg: #FAFAF9;
-  --color-lm-text: #1C1917;
-  --color-lm-accent: #4A6FA5;
-  --color-lm-muted: #6B7280;
-  --color-lm-border: #E5E7EB;
-  --color-lm-surface: #F3F4F6;
+  --color-lm-bg: #06080F;
+  --color-lm-surface: #0C1018;
+  --color-lm-text: #F4EFE6;
+  --color-lm-text-muted: #C9C2B5;
+  --color-lm-accent: #3B82F6;
+  --color-lm-muted: #8A8578;
+  --color-lm-border: #151D2E;
+  --color-lm-cyan: #22D3EE;
   --font-family-serif: "Playfair Display", Georgia, serif;
   --font-family-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Courier New", monospace;
 }
 
 @layer base {
@@ -27,19 +30,20 @@
 
 @layer components {
   .prose {
-    --tw-prose-body: #1C1917;
-    --tw-prose-headings: #1C1917;
-    --tw-prose-links: #4A6FA5;
-    --tw-prose-bold: #1C1917;
-    --tw-prose-counters: #6B7280;
-    --tw-prose-bullets: #6B7280;
-    --tw-prose-hr: #E5E7EB;
-    --tw-prose-quotes: #1C1917;
-    --tw-prose-quote-borders: #4A6FA5;
-    --tw-prose-captions: #6B7280;
-    --tw-prose-code: #1C1917;
-    --tw-prose-th-borders: #E5E7EB;
-    --tw-prose-td-borders: #E5E7EB;
+    --tw-prose-body: #C9C2B5;
+    --tw-prose-headings: #F4EFE6;
+    --tw-prose-links: #3B82F6;
+    --tw-prose-bold: #F4EFE6;
+    --tw-prose-counters: #8A8578;
+    --tw-prose-bullets: #8A8578;
+    --tw-prose-hr: #151D2E;
+    --tw-prose-quotes: #F4EFE6;
+    --tw-prose-quote-borders: #3B82F6;
+    --tw-prose-captions: #8A8578;
+    --tw-prose-code: #F4EFE6;
+    --tw-prose-pre-bg: #0C1018;
+    --tw-prose-th-borders: #151D2E;
+    --tw-prose-td-borders: #151D2E;
     font-family: "Playfair Display", Georgia, serif;
     line-height: 1.8;
   }
@@ -51,6 +55,6 @@
     font-weight: 700;
   }
   .prose a:hover {
-    color: #1C1917;
+    color: #F4EFE6;
   }
 }

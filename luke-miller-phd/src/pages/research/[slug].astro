@@ -45,20 +45,20 @@ const formattedDate = post.data.date.toLocaleDateString('en-US', {
 
     <!-- Post header -->
     <header class="pt-2 pb-8 border-b border-lm-border mb-10">
-      <div class="flex items-center gap-3 text-xs text-lm-muted font-sans mb-3">
+      <div class="flex items-center gap-3 font-mono text-xs text-lm-muted tracking-wider uppercase mb-4">
         <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
         <span aria-hidden="true">&middot;</span>
         <span class="text-lm-accent">{post.data.category}</span>
         <span aria-hidden="true">&middot;</span>
         <span class="text-lm-muted">{post.data.author}</span>
       </div>
-      <h1 class="font-serif text-3xl font-bold text-lm-text leading-snug mb-3">
+      <h1 class="font-serif text-3xl font-normal text-lm-text leading-snug mb-3">
         {post.data.title}
       </h1>
       <p class="text-lm-muted text-sm leading-relaxed font-sans">{post.data.summary}</p>
       <div class="flex flex-wrap gap-2 mt-4">
         {post.data.tags.map((tag) => (
-          <span class="text-xs bg-lm-surface text-lm-muted px-2.5 py-1 rounded-full font-sans">
+          <span class="font-mono text-xs bg-lm-surface text-lm-muted px-2.5 py-1 rounded-sm border border-lm-border">
             {tag}
           </span>
         ))}
