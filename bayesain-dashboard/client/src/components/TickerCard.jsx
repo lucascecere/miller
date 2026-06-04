@@ -33,11 +33,18 @@ export default function TickerCard({ ticker, onChartGenerated }) {
         s0: ticker.price,
         sigma: ticker.sigma || computeSigma(iv),
         band: computeBand(iv),
+        ticker: ticker.symbol,
+        pplLow: ticker.ppl_low,
+        pplMode: ticker.ppl_mode,
+        pplHigh: ticker.ppl_high,
+        timeframe: 'daily',
       });
 
       await post(`/api/charts/upload/${ticker.symbol}`, {
         chartData2d: chartData.data2d,
         chartData3d: chartData.data3d,
+        upPct: chartData.upPct,
+        timeframe: 'daily',
       });
 
       if (onChartGenerated) onChartGenerated();

@@ -8,70 +8,70 @@ const IS_VERCEL = !!process.env.VERCEL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 
 // Upload chart PNGs (base64) from browser, store in Supabase Storage or local disk
+async function uploadImage(base64Data, storePath, localDir, localFile) {
+  if (IS_VERCEL) {
+    const buf = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    const { error } = await supabase.storage.from('charts').upload(storePath, buf, { contentType: 'image/png', upsert: true });
+    if (error) throw error;
+    return `${SUPABASE_URL}/storage/v1/object/public/charts/${storePath}`;
+  } else {
+    fs.mkdirSync(localDir, { recursive: true });
+    const buf = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    fs.writeFileSync(path.join(localDir, localFile), buf);
+    return `charts/${localFile}`;
+  }
+}
+
 router.post('/upload/:symbol', async (req, res) => {
   const { symbol } = req.params;
-  const { chartData2d, chartData3d, upPct } = req.body;
+  const { chartData2d, chartData3d, upPct, timeframe = 'daily' } = req.body;
   const today = new Date().toISOString().split('T')[0];
+  const chartsDir = path.resolve(__dirname, '../../public/charts');
 
-  let path2d = null;
+  const columnMap = {
+    'daily':  { col2d: 'chart_2d_path',     col3d: 'chart_3d_path',  suffix: '2d'     },
+    '2hr':    { col2d: 'chart_2hr_path',     col3d: null,             suffix: '2hr'    },
+    '30min':  { col2d: 'chart_30min_path',   col3d: null,             suffix: '30min'  },
+  };
+  const cols = columnMap[timeframe] || columnMap.daily;
+
+  let pathMain = null;
   let path3d = null;
 
   try {
-    if (IS_VERCEL) {
-      // Upload to Supabase Storage, get public URL
-      if (chartData2d) {
-        const buf2d = Buffer.from(chartData2d.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-        const storePath2d = `${symbol}/${today}-2d.png`;
-        const { error } = await supabase.storage.from('charts').upload(storePath2d, buf2d, { contentType: 'image/png', upsert: true });
-        if (error) throw error;
-        path2d = `${SUPABASE_URL}/storage/v1/object/public/charts/${storePath2d}`;
-      }
-      if (chartData3d) {
-        const buf3d = Buffer.from(chartData3d.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-        const storePath3d = `${symbol}/${today}-3d.png`;
-        const { error } = await supabase.storage.from('charts').upload(storePath3d, buf3d, { contentType: 'image/png', upsert: true });
-        if (error) throw error;
-        path3d = `${SUPABASE_URL}/storage/v1/object/public/charts/${storePath3d}`;
-      }
-    } else {
-      // Local: write to public/charts/
-      const chartsDir = path.resolve(__dirname, '../../public/charts');
-      fs.mkdirSync(chartsDir, { recursive: true });
-      if (chartData2d) {
-        const buf = Buffer.from(chartData2d.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-        fs.writeFileSync(path.join(chartsDir, `${symbol}-${today}-2d.png`), buf);
-        path2d = `charts/${symbol}-${today}-2d.png`;
-      }
-      if (chartData3d) {
-        const buf = Buffer.from(chartData3d.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-        fs.writeFileSync(path.join(chartsDir, `${symbol}-${today}-3d.png`), buf);
-        path3d = `charts/${symbol}-${today}-3d.png`;
-      }
+    if (chartData2d) {
+      pathMain = await uploadImage(chartData2d, `${symbol}/${today}-${cols.suffix}.png`, chartsDir, `${symbol}-${today}-${cols.suffix}.png`);
     }
+    if (chartData3d && cols.col3d) {
+      path3d = await uploadImage(chartData3d, `${symbol}/${today}-3d.png`, chartsDir, `${symbol}-${today}-3d.png`);
+    }
+
+    const upsertData = { symbol, date: today, generated_at: new Date().toISOString(), [cols.col2d]: pathMain };
+    if (cols.col3d && path3d) upsertData[cols.col3d] = path3d;
 
     const { data: inserted, error: chartErr } = await supabase
       .from('charts')
-      .upsert({ symbol, date: today, chart_2d_path: path2d, chart_3d_path: path3d, generated_at: new Date().toISOString() }, { onConflict: 'symbol,date' })
+      .upsert(upsertData, { onConflict: 'symbol,date' })
       .select()
       .single();
 
     if (chartErr) throw chartErr;
 
-    if (inserted) {
+    if (inserted && timeframe === 'daily') {
       await supabase.from('posts')
         .update({ status: 'chart_ready', chart_id: inserted.id })
         .eq('symbol', symbol).eq('date', today).eq('status', 'draft');
     }
 
-    if (upPct !== undefined && upPct !== null) {
+    if (upPct !== undefined && upPct !== null && timeframe === 'daily') {
       await supabase.from('ticker_data')
         .update({ up_pct: upPct })
         .eq('symbol', symbol).eq('date', today);
     }
 
-    res.json({ symbol, path2d, path3d, upPct: upPct ?? null, generatedAt: new Date().toISOString() });
+    res.json({ symbol, timeframe, path2d: pathMain, path3d: path3d ?? null, upPct: upPct ?? null, generatedAt: new Date().toISOString() });
   } catch (err) {
-    console.error(`Chart upload failed for ${symbol}:`, err);
+    console.error(`Chart upload failed for ${symbol} (${timeframe}):`, err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -95,7 +95,14 @@ router.get('/latest/:symbol', async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   if (!data || !data.length) return res.status(404).json({ error: 'No chart for today' });
   const c = data[0];
-  res.json({ symbol, path2d: c.chart_2d_path, path3d: c.chart_3d_path, generatedAt: c.generated_at });
+  res.json({
+    symbol,
+    path2d:    c.chart_2d_path,
+    path3d:    c.chart_3d_path,
+    path2hr:   c.chart_2hr_path,
+    path30min: c.chart_30min_path,
+    generatedAt: c.generated_at,
+  });
 });
 
 module.exports = router;
