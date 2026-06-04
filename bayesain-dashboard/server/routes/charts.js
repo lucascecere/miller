@@ -64,7 +64,7 @@ router.post('/upload/:symbol', async (req, res) => {
     }
 
     // On every daily chart upload, write the PPL values from bayesain.html back to
-    // ticker_data so the tweet templates, PPL cards, and chart all read from the same source.
+    // ticker_data and regenerate the post tweet_text — bayesain.html is the source of truth.
     if (timeframe === 'daily') {
       const tdUpdate = {};
       if (upPct !== undefined && upPct !== null) tdUpdate.up_pct = upPct;
@@ -73,6 +73,23 @@ router.post('/upload/:symbol', async (req, res) => {
       if (pplHigh != null) tdUpdate.ppl_high = pplHigh;
       if (Object.keys(tdUpdate).length > 0) {
         await supabase.from('ticker_data').update(tdUpdate).eq('symbol', symbol).eq('date', today);
+      }
+
+      // Also regenerate the post's tweet_text so it always matches the chart.
+      if (pplLow != null && pplHigh != null) {
+        const { generateTweetText } = require('../services/tweetTemplates');
+        const freshTweet = generateTweetText(symbol, {
+          price:      pplMode,
+          pplLow,
+          pplMode,
+          pplHigh,
+          upPct:      upPct ?? null,
+          ivCurrent:  null,
+        });
+        await supabase.from('posts')
+          .update({ tweet_text: freshTweet })
+          .eq('symbol', symbol).eq('date', today)
+          .neq('status', 'posted');
       }
     }
 
