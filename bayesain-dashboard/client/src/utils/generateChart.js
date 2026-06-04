@@ -64,8 +64,13 @@ export async function generateChartInBrowser({ s0, sigma, band, steps = 252, pat
               if (canvas3d) data3d = canvas3d.toDataURL('image/jpeg', 0.9);
             }
 
+            const finals = win._finalBurstFinals || [];
+            const upPct = finals.length > 0
+              ? Math.round((finals.filter(f => f >= s0).length / finals.length) * 100)
+              : null;
+
             cleanup();
-            resolve({ data2d, data3d });
+            resolve({ data2d, data3d, upPct });
           } catch (err) { cleanup(); reject(err); }
         }, 9500);
       } catch (err) { clearTimeout(timeout); cleanup(); reject(err); }

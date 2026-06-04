@@ -10,7 +10,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 // Upload chart PNGs (base64) from browser, store in Supabase Storage or local disk
 router.post('/upload/:symbol', async (req, res) => {
   const { symbol } = req.params;
-  const { chartData2d, chartData3d } = req.body;
+  const { chartData2d, chartData3d, upPct } = req.body;
   const today = new Date().toISOString().split('T')[0];
 
   let path2d = null;
@@ -63,7 +63,13 @@ router.post('/upload/:symbol', async (req, res) => {
         .eq('symbol', symbol).eq('date', today).eq('status', 'draft');
     }
 
-    res.json({ symbol, path2d, path3d, generatedAt: new Date().toISOString() });
+    if (upPct !== undefined && upPct !== null) {
+      await supabase.from('ticker_data')
+        .update({ up_pct: upPct })
+        .eq('symbol', symbol).eq('date', today);
+    }
+
+    res.json({ symbol, path2d, path3d, upPct: upPct ?? null, generatedAt: new Date().toISOString() });
   } catch (err) {
     console.error(`Chart upload failed for ${symbol}:`, err);
     res.status(500).json({ error: err.message });

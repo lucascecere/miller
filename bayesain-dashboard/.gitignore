@@ -3,3 +3,4 @@ data/
 .env
 public/charts/
 client/dist/
+.vercel

@@ -27,6 +27,32 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.post('/', async (req, res) => {
+  try {
+    const { symbol, company_name } = req.body;
+    if (!symbol) return res.status(400).json({ error: 'symbol required' });
+    const { data, error } = await supabase.from('tickers').insert({ symbol: symbol.toUpperCase(), company_name: company_name || null }).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error('POST /tickers error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    await supabase.from('ticker_data').delete().eq('symbol', symbol.toUpperCase());
+    const { error } = await supabase.from('tickers').delete().eq('symbol', symbol.toUpperCase());
+    if (error) throw error;
+    res.json({ ok: true, symbol: symbol.toUpperCase() });
+  } catch (err) {
+    console.error('DELETE /tickers/:symbol error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/refresh', async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const { data: tickers, error: tickerErr } = await supabase.from('tickers').select('*');

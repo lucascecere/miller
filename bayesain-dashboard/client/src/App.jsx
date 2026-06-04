@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import PostView from './pages/PostView';
+import Engage from './pages/Engage';
+import Results from './pages/Results';
+import History from './pages/History';
+import Settings from './pages/Settings';
 import { get } from './api';
 
 function ProtectedRoute({ children }) {
@@ -28,6 +32,10 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/post/:ticker" element={<ProtectedRoute><PostView /></ProtectedRoute>} />
+        <Route path="/engage" element={<ProtectedRoute><Engage /></ProtectedRoute>} />
+        <Route path="/results" element={<Results />} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

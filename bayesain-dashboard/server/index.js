@@ -13,6 +13,9 @@ const tickerRoutes   = require('./routes/tickers');
 const chartRoutes    = require('./routes/charts');
 const postRoutes     = require('./routes/posts');
 const settingsRoutes = require('./routes/settings');
+const resultsRoutes  = require('./routes/results');
+const engageRoutes   = require('./routes/engage');
+const threadRoutes   = require('./routes/thread');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -37,11 +40,20 @@ function requireAuth(req, res, next) {
 // Auth routes (no middleware)
 app.use('/api', authRoutes);
 
+// Public result stats — no auth required
+app.get('/api/results/public', (req, res, next) => {
+  req.url = '/public';
+  resultsRoutes(req, res, next);
+});
+
 // Protected API routes
 app.use('/api/tickers',  requireAuth, tickerRoutes);
 app.use('/api/charts',   requireAuth, chartRoutes);
 app.use('/api/posts',    requireAuth, postRoutes);
 app.use('/api/settings', requireAuth, settingsRoutes);
+app.use('/api/results',  requireAuth, resultsRoutes);
+app.use('/api/engage',   requireAuth, engageRoutes);
+app.use('/api/thread',   requireAuth, threadRoutes);
 
 // Static: public/ (bayesain.html, generated charts)
 app.use(express.static(path.join(__dirname, '../public')));
