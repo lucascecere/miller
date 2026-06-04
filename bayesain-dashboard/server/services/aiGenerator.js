@@ -2,9 +2,9 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-async function generateTweet(systemPrompt, userPrompt, maxTokens = 300) {
+async function generateTweet(systemPrompt, userPrompt, maxTokens = 300, model = 'claude-haiku-4-5-20251001') {
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model,
     max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }]
@@ -36,14 +36,14 @@ Hard rules:
 
 async function generateReply({ tweetText, authorHandle, authorFollowers, ticker, pplLevels, userIntent }) {
   const tickerContext = ticker && pplLevels
-    ? `Current BayesAIn data for $${ticker}: Support $${pplLevels.low} | Mode $${pplLevels.mode} | Resistance $${pplLevels.high}`
+    ? `BayesAIn data available for $${ticker}: Support $${pplLevels.low} | Mode $${pplLevels.mode} | Resistance $${pplLevels.high}. Use this only if it's genuinely relevant to the conversation.`
     : '';
   const authorContext = authorHandle
-    ? `This tweet is from ${authorHandle}${authorFollowers ? ` (${authorFollowers} followers)` : ''}.`
+    ? `Posted by ${authorHandle}${authorFollowers ? ` (${authorFollowers.toLocaleString()} followers)` : ''}.`
     : '';
-  const intentContext = userIntent ? `Our intent: ${userIntent}` : '';
+  const intentContext = userIntent ? `Our goal with this reply: ${userIntent}` : '';
 
-  const userPrompt = `Write a reply to this tweet.
+  const userPrompt = `You need to reply to this specific tweet. Read it carefully.
 
 TWEET:
 "${tweetText}"
@@ -52,17 +52,23 @@ ${authorContext}
 ${tickerContext}
 ${intentContext}
 
-Classify the tweet and reply accordingly:
-- If it's a market prediction or bold call: acknowledge + add BayesAIn data point on same ticker
-- If it's skepticism: calm confidence, cite track record, invite them to watch
-- If it's a question: give a direct answer first, then connect to BayesAIn approach
-- If it's a fellow trader sharing analysis: genuine engagement, add data, ask a real question
-- If it's breaking news: mention what BayesAIn had mapped BEFORE the news if relevant
+Before writing, identify:
+1. What exact claim, question, or take is this person making?
+2. What is the most interesting or debatable part of what they said?
+3. What would a knowledgeable trader actually say in response to THIS specific point?
 
-Reply must be under 240 characters. Include a specific price level if any ticker is mentioned.
-Do not use hashtags unless it feels completely natural.`;
+Then write a reply that:
+- Directly engages with what they actually said — quote or reference their specific claim, number, or word choice
+- Adds something they didn't say — a different angle, a sharper data point, a question that cuts deeper
+- Sounds like one trader talking to another, not a brand doing outreach
+- Only mentions BayesAIn if it's genuinely the most useful thing to add — not every reply needs it
+- Never restates what they said back to them
+- Never uses filler openers ("Great take", "Exactly", "This is spot on")
 
-  return generateTweet(BAYESAIN_SYSTEM_PROMPT, userPrompt);
+Keep it under 240 characters. One sharp idea beats two vague ones.
+Output the reply text only — no quotes, no labels.`;
+
+  return generateTweet(BAYESAIN_SYSTEM_PROMPT, userPrompt, 300, 'claude-sonnet-4-6');
 }
 
 async function generateThread({ topic, tickers, audience, tweetCount, newsContext }) {
