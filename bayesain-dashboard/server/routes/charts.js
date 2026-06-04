@@ -24,7 +24,7 @@ async function uploadImage(base64Data, storePath, localDir, localFile) {
 
 router.post('/upload/:symbol', async (req, res) => {
   const { symbol } = req.params;
-  const { chartData2d, chartData3d, upPct, timeframe = 'daily' } = req.body;
+  const { chartData2d, chartData3d, upPct, timeframe = 'daily', pplLow, pplMode, pplHigh } = req.body;
   const today = new Date().toISOString().split('T')[0];
   const chartsDir = path.resolve(__dirname, '../../public/charts');
 
@@ -63,10 +63,17 @@ router.post('/upload/:symbol', async (req, res) => {
         .eq('symbol', symbol).eq('date', today).eq('status', 'draft');
     }
 
-    if (upPct !== undefined && upPct !== null && timeframe === 'daily') {
-      await supabase.from('ticker_data')
-        .update({ up_pct: upPct })
-        .eq('symbol', symbol).eq('date', today);
+    // On every daily chart upload, write the PPL values from bayesain.html back to
+    // ticker_data so the tweet templates, PPL cards, and chart all read from the same source.
+    if (timeframe === 'daily') {
+      const tdUpdate = {};
+      if (upPct !== undefined && upPct !== null) tdUpdate.up_pct = upPct;
+      if (pplLow  != null) tdUpdate.ppl_low  = pplLow;
+      if (pplMode != null) tdUpdate.ppl_mode = pplMode;
+      if (pplHigh != null) tdUpdate.ppl_high = pplHigh;
+      if (Object.keys(tdUpdate).length > 0) {
+        await supabase.from('ticker_data').update(tdUpdate).eq('symbol', symbol).eq('date', today);
+      }
     }
 
     res.json({ symbol, timeframe, path2d: pathMain, path3d: path3d ?? null, upPct: upPct ?? null, generatedAt: new Date().toISOString() });

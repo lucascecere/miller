@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { post } from '../api';
 import StatusBadge from './StatusBadge';
-import { generateChartInBrowser, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
+import { generateAllCharts, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
 export default function TickerCard({ ticker, onChartGenerated }) {
@@ -28,24 +28,25 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
 
     try {
-      const iv = ticker.iv_current || 0.20;
-      const chartData = await generateChartInBrowser({
-        s0: ticker.price,
-        sigma: ticker.sigma || computeSigma(iv),
-        band: computeBand(iv),
+      const iv     = ticker.iv_current || 0.20;
+      const charts = await generateAllCharts({
+        s0:     ticker.price,
+        sigma:  ticker.sigma || computeSigma(iv),
+        band:   computeBand(iv),
         ticker: ticker.symbol,
-        pplLow: ticker.ppl_low,
-        pplMode: ticker.ppl_mode,
-        pplHigh: ticker.ppl_high,
-        timeframe: 'daily',
       });
 
-      await post(`/api/charts/upload/${ticker.symbol}`, {
-        chartData2d: chartData.data2d,
-        chartData3d: chartData.data3d,
-        upPct: chartData.upPct,
-        timeframe: 'daily',
-      });
+      for (const c of charts) {
+        await post(`/api/charts/upload/${ticker.symbol}`, {
+          chartData2d: c.data2d,
+          chartData3d: c.data3d,
+          upPct:       c.upPct,
+          timeframe:   c.timeframe,
+          pplLow:      c.pplLow,
+          pplMode:     c.pplMode,
+          pplHigh:     c.pplHigh,
+        });
+      }
 
       if (onChartGenerated) onChartGenerated();
     } catch (err) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get, post } from '../api';
-import { generateChartInBrowser, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
+import { generateAllCharts, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
 const TIMEFRAMES = [
@@ -51,26 +51,28 @@ export default function ChartViewer({ ticker, tickerData }) {
 
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
     try {
-      const iv = tickerData.ivCurrent || 0.20;
-      const chartData = await generateChartInBrowser({
-        s0: tickerData.price,
-        sigma: tickerData.sigma || computeSigma(iv),
-        band: computeBand(iv),
+      const iv     = tickerData.ivCurrent || 0.20;
+      const charts = await generateAllCharts({
+        s0:     tickerData.price,
+        sigma:  tickerData.sigma || computeSigma(iv),
+        band:   computeBand(iv),
         ticker,
-        pplLow: tickerData.pplLow,
-        pplMode: tickerData.pplMode,
-        pplHigh: tickerData.pplHigh,
-        timeframe: activeTimeframe,
       });
 
-      const result = await post(`/api/charts/upload/${ticker}`, {
-        chartData2d: chartData.data2d,
-        chartData3d: chartData.data3d,
-        upPct: chartData.upPct,
-        timeframe: activeTimeframe,
-      });
-
-      setChart(prev => ({ ...prev, ...result }));
+      let merged = {};
+      for (const c of charts) {
+        const result = await post(`/api/charts/upload/${ticker}`, {
+          chartData2d: c.data2d,
+          chartData3d: c.data3d,
+          upPct:       c.upPct,
+          timeframe:   c.timeframe,
+          pplLow:      c.pplLow,
+          pplMode:     c.pplMode,
+          pplHigh:     c.pplHigh,
+        });
+        merged = { ...merged, ...result };
+      }
+      setChart(prev => ({ ...prev, ...merged }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -159,7 +161,7 @@ export default function ChartViewer({ ticker, tickerData }) {
           onMouseOver={e => { if (!regenerating) { e.target.style.borderColor = '#7DF9FF'; e.target.style.color = '#7DF9FF'; } }}
           onMouseOut={e => { e.target.style.borderColor = 'rgba(255,255,255,0.2)'; e.target.style.color = '#c8cad8'; }}
         >
-          {regenerating ? `Generating… ${elapsed}s` : 'Generate'}
+          {regenerating ? `Generating all… ${elapsed}s` : 'Generate All'}
         </button>
       </div>
 
