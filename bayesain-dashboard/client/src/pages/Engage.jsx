@@ -270,6 +270,7 @@ function ReplyTab({ newsContext, setNewsContext }) {
   const [authorHandle, setAuthorHandle] = useState('');
   const [userIntent, setUserIntent] = useState('');
   const [ticker, setTicker] = useState('');
+  const [autoData, setAutoData] = useState(null);
 
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -280,6 +281,7 @@ function ReplyTab({ newsContext, setNewsContext }) {
     setLoading(true);
     setError('');
     setOutput('');
+    setAutoData(null);
     try {
       const data = await post('/api/engage/reply', {
         tweetText: tweetText.trim(),
@@ -289,6 +291,9 @@ function ReplyTab({ newsContext, setNewsContext }) {
         ticker: ticker.trim(),
       });
       setOutput(data.reply || '');
+      if (data.autoTicker || data.autoPplLevels) {
+        setAutoData({ ticker: data.autoTicker, ppl: data.autoPplLevels });
+      }
     } catch (err) {
       setError(err.message || 'Generation failed.');
     } finally {
@@ -331,26 +336,34 @@ function ReplyTab({ newsContext, setNewsContext }) {
         />
       </InputField>
 
-      <InputField label="Related ticker">
+      <InputField label="Related ticker (auto-detected if blank)">
         <StyledInput
           value={ticker}
           onChange={e => setTicker(e.target.value)}
-          placeholder="e.g. SPY (optional)"
-          style={{ ...inputStyle, width: '160px' }}
+          placeholder="e.g. SPY — or leave blank to auto-detect"
+          style={{ ...inputStyle, width: '260px' }}
         />
       </InputField>
 
       <ActionButton
-        label={loading ? 'Generating…' : 'Generate Reply →'}
+        label={loading ? 'Fetching data + generating…' : 'Generate Reply →'}
         onClick={handleGenerate}
         disabled={loading || !tweetText.trim()}
       />
+
+      {autoData && (
+        <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontFamily: 'monospace', color: '#4ade80', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          {autoData.ticker && <span>↳ Auto-detected: ${autoData.ticker}</span>}
+          {autoData.ppl && <span>PPL loaded: L${autoData.ppl.low?.toFixed(0)} / M${autoData.ppl.mode?.toFixed(0)} / H${autoData.ppl.high?.toFixed(0)}</span>}
+          <span style={{ color: '#6b6e85' }}>+ live news injected</span>
+        </div>
+      )}
 
       <OutputSection
         output={output}
         loading={loading}
         error={error}
-        onClear={() => { setOutput(''); setError(''); }}
+        onClear={() => { setOutput(''); setError(''); setAutoData(null); }}
       />
     </div>
   );

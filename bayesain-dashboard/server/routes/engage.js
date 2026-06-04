@@ -18,11 +18,46 @@ function requireAI(res) {
 router.post('/reply', async (req, res) => {
   if (!requireAI(res)) return;
   try {
-    const { tweetText, authorHandle, authorFollowers, ticker, pplLevels, userIntent } = req.body;
+    const { tweetText, authorHandle, authorFollowers, userIntent } = req.body;
+    let { ticker, pplLevels, newsContext } = req.body;
     if (!tweetText || !tweetText.trim()) return res.status(400).json({ error: 'tweetText required' });
 
-    const reply = await generateReply({ tweetText, authorHandle, authorFollowers, ticker, pplLevels, userIntent });
-    res.json({ reply });
+    const today = new Date().toISOString().split('T')[0];
+
+    // Auto-detect tickers from tweet if none provided
+    if (!ticker) {
+      const matches = tweetText.match(/\$([A-Z]{1,5})/g);
+      if (matches && matches.length > 0) {
+        ticker = matches[0].replace('$', '');
+      }
+    }
+
+    // Auto-fetch live PPL data for the ticker if not provided
+    if (ticker && !pplLevels) {
+      const { data: tdRows } = await supabase
+        .from('ticker_data')
+        .select('price, ppl_low, ppl_mode, ppl_high, iv_current')
+        .eq('symbol', ticker.toUpperCase())
+        .eq('date', today)
+        .limit(1);
+      if (tdRows && tdRows[0]) {
+        const td = tdRows[0];
+        pplLevels = { low: td.ppl_low, mode: td.ppl_mode, high: td.ppl_high, price: td.price };
+      }
+    }
+
+    // Auto-fetch top news headlines if no context provided
+    if (!newsContext) {
+      try {
+        const items = await fetchNews();
+        if (items.length > 0) {
+          newsContext = items.slice(0, 3).map(i => i.title).join(' | ');
+        }
+      } catch { /* non-blocking */ }
+    }
+
+    const reply = await generateReply({ tweetText, authorHandle, authorFollowers, ticker, pplLevels, userIntent, newsContext });
+    res.json({ reply, autoTicker: ticker || null, autoPplLevels: pplLevels || null });
   } catch (err) {
     console.error('POST /engage/reply error:', err);
     res.status(500).json({ error: err.message });
