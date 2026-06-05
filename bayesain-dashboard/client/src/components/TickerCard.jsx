@@ -30,17 +30,14 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
 
     try {
-      const { daily, twoHour, thirtyMin } = await generateAllCharts({
+      const iv = ticker.iv_current || 0.30;
+      const { twoHour, thirtyMin } = await generateAllCharts({
         s0:     ticker.price,
+        iv,
         ticker: ticker.symbol,
       });
 
       await Promise.all([
-        post(`/api/charts/upload/${ticker.symbol}`, {
-          chartData2d: daily.data2d, chartData3d: daily.data3d,
-          upPct: daily.upPct, timeframe: 'daily',
-          pplLow: daily.pplLow, pplMode: daily.pplMode, pplHigh: daily.pplHigh,
-        }),
         post(`/api/charts/upload/${ticker.symbol}`, {
           chartData2d: twoHour.data2d,
           upPct: twoHour.upPct, timeframe: '2hr',

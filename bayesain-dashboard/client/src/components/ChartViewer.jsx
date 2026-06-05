@@ -4,9 +4,8 @@ import { generateAllCharts, chartSrc } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
 const TABS = [
-  { id: 'daily',  label: 'Daily'  },
-  { id: '2hr',    label: '2-Hour' },
-  { id: '30min',  label: '30-Min' },
+  { id: '2hr',   label: '2-Hour' },
+  { id: '30min', label: '30-Min' },
 ];
 
 export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
@@ -33,9 +32,8 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
 
   function srcForTab(tab) {
     if (!chart) return null;
-    if (tab === 'daily')  return chartSrc(chart.path2d);
-    if (tab === '2hr')    return chartSrc(chart.path2hr);
-    if (tab === '30min')  return chartSrc(chart.path30min);
+    if (tab === '2hr')   return chartSrc(chart.path2hr);
+    if (tab === '30min') return chartSrc(chart.path30min);
     return null;
   }
 
@@ -58,22 +56,14 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
 
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
     try {
-      const { daily, twoHour, thirtyMin } = await generateAllCharts({
+      const iv = tickerData?.iv_current || tickerData?.ivCurrent || 0.30;
+      const { twoHour, thirtyMin } = await generateAllCharts({
         s0: tickerData.price,
+        iv,
         ticker,
       });
 
-      // Upload all 3 timeframes in parallel; 2hr is the primary PPL source
       await Promise.all([
-        post(`/api/charts/upload/${ticker}`, {
-          chartData2d: daily.data2d,
-          chartData3d: daily.data3d,
-          upPct:       daily.upPct,
-          timeframe:   'daily',
-          pplLow:      daily.pplLow,
-          pplMode:     daily.pplMode,
-          pplHigh:     daily.pplHigh,
-        }),
         post(`/api/charts/upload/${ticker}`, {
           chartData2d: twoHour.data2d,
           upPct:       twoHour.upPct,
