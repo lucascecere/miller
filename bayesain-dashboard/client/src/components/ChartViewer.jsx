@@ -142,11 +142,6 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
               }}
             >
               {tab.label}
-              {tab.id === '2hr' && (
-                <span style={{ marginLeft: '4px', fontSize: '0.55rem', color: active ? '#7DF9FF' : '#6b6e85' }}>
-                  +30m
-                </span>
-              )}
             </button>
           );
         })}

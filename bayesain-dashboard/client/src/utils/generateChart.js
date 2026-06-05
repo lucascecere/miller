@@ -215,9 +215,7 @@ export async function generateAllCharts({ s0, sigma, band, ticker }) {
     generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '30min'  }),
   ]);
 
-  const twoHour = await add30minOverlay(twoHour_raw, thirtyMin);
-
-  return { daily, twoHour, thirtyMin };
+  return { daily, twoHour: twoHour_raw, thirtyMin };
 }
 
 export function chartSrc(path) {
