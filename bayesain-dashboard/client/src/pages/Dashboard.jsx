@@ -4,9 +4,11 @@ import { get, post } from '../api';
 import TickerCard from '../components/TickerCard';
 import Layout from '../components/Layout';
 import ThreadModal from '../components/ThreadModal';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const isMobile  = useIsMobile();
   const [tickers, setTickers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -139,8 +141,8 @@ export default function Dashboard() {
   return (
     <Layout>
       {/* Action bar */}
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 1.5rem 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 1rem 0' : '1rem 1.5rem 0' }}>
+        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {statusMsg && <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#7DF9FF' }}>{statusMsg}</span>}
             {error && <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#f87171' }}>{error}</span>}
@@ -186,10 +188,10 @@ export default function Dashboard() {
       </div>
 
       {/* Two-column layout */}
-      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem', display: 'grid', gridTemplateColumns: '2fr 3fr', gap: '1.5rem', alignItems: 'start' }}>
+      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '1rem' : '1.5rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 3fr', gap: '1.5rem', alignItems: 'start' }}>
 
         {/* Left column — schedule + predictions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '68px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: isMobile ? 'static' : 'sticky', top: '68px' }}>
 
           {openResults.length > 0 && (
             <div>

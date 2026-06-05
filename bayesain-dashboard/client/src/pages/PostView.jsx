@@ -5,6 +5,7 @@ import ChartViewer from '../components/ChartViewer';
 import TweetEditor from '../components/TweetEditor';
 import StatusBadge from '../components/StatusBadge';
 import Layout from '../components/Layout';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function PostView() {
   const { ticker } = useParams();
@@ -85,6 +86,7 @@ export default function PostView() {
     </div>
   );
 
+  const isMobile = useIsMobile();
   const members = Array.isArray(settings.team_members) ? settings.team_members : ['Luke', 'Lucas'];
   const isHit = data.result_status === 'HIT_HIGH' || data.result_status === 'HIT_LOW';
 
@@ -115,8 +117,8 @@ export default function PostView() {
         <StatusBadge status={data.status} />
       </div>
 
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <main style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '1rem' : '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.5rem' }}>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <ChartViewer ticker={ticker} tickerData={data} onRegenerated={loadData} />
