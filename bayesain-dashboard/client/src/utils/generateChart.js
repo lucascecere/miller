@@ -77,23 +77,18 @@ async function addTimeframeOverlay(baseResult, overlayResult, prefix, highColor,
   return { ...baseResult, data2d: newData2d };
 }
 
-// Generates one timeframe chart. Returns chart image data plus frozenLines (the
-// stdev band values bayesain.html draws) — those band values are the PPL levels.
-export async function generateChartInBrowser({
-  s0, sigma, band,
-  ticker = '', timeframe = 'daily', paths = 120,
-}) {
-  const cfg         = TIMEFRAME_CONFIG[timeframe] || TIMEFRAME_CONFIG.daily;
-  const steps       = Math.round(cfg.stepsPerDay * cfg.horizonDays);
-  const scaledSigma = cfg.stepsPerDay === 1 ? sigma : sigma / Math.sqrt(cfg.stepsPerDay);
-
+// Generates one timeframe chart using bayesain.html's own defaults — only the
+// stock price (s0) and annotation label are injected. Sigma, bandMult, nPaths,
+// and nSteps are left exactly as Luke set them in the HTML.
+export async function generateChartInBrowser({ s0, ticker = '', timeframe = 'daily' }) {
+  const cfg        = TIMEFRAME_CONFIG[timeframe] || TIMEFRAME_CONFIG.daily;
   const today      = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const annotation = [`$${ticker}`, today, cfg.label].filter(Boolean).join('   ');
 
   const res  = await fetch('/bayesain.html');
   let html   = await res.text();
 
-  // Prevent auto-run — we trigger run() manually after setting all inputs
+  // Prevent auto-run — we trigger run() manually after setting inputs
   html = html.replace(/syncTri\(\);\s*[\s\S]*?run\(\);/, 'syncTri();');
 
   const blob    = new Blob([html], { type: 'text/html' });
@@ -117,15 +112,10 @@ export async function generateChartInBrowser({
         const doc = iframe.contentDocument;
         const win = iframe.contentWindow;
 
+        // Only set the stock price — everything else uses Luke's HTML defaults
         const s0El = doc.getElementById('s0');
         s0El.value = s0;
         s0El.dispatchEvent(new Event('input', { bubbles: true }));
-
-        // sigma input expects annualized vol; scaledSigma is per-step, convert back
-        doc.getElementById('sigma').value  = scaledSigma * Math.sqrt(steps);
-        if (band != null) doc.getElementById('bandMult').value = band;
-        doc.getElementById('nPaths').value = paths;
-        doc.getElementById('nSteps').value = steps;
 
         const commentEl = doc.getElementById('chartComment');
         if (commentEl) commentEl.value = annotation;
@@ -208,11 +198,11 @@ export async function generateChartInBrowser({
 // Generates all 3 timeframes. The 2hr chart gets the 30min stdev bands overlaid
 // so a single chart shows both timeframe perspectives — that combined chart is
 // what gets posted.
-export async function generateAllCharts({ s0, sigma, band, ticker }) {
+export async function generateAllCharts({ s0, ticker }) {
   const [daily, twoHour_raw, thirtyMin] = await Promise.all([
-    generateChartInBrowser({ s0, sigma, band, ticker, timeframe: 'daily'  }),
-    generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '2hr'    }),
-    generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '30min'  }),
+    generateChartInBrowser({ s0, ticker, timeframe: 'daily'  }),
+    generateChartInBrowser({ s0, ticker, timeframe: '2hr'    }),
+    generateChartInBrowser({ s0, ticker, timeframe: '30min'  }),
   ]);
 
   // Daily chart shows both 2hr and 30min bands overlaid for full context

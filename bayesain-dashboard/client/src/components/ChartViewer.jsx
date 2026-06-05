@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get, post } from '../api';
-import { generateAllCharts, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
+import { generateAllCharts, chartSrc } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
 const TABS = [
@@ -58,11 +58,8 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
 
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
     try {
-      const iv = tickerData.ivCurrent || tickerData.iv_current || 0.20;
       const { daily, twoHour, thirtyMin } = await generateAllCharts({
-        s0:    tickerData.price,
-        sigma: tickerData.sigma || computeSigma(iv),
-        band:  computeBand(iv),
+        s0: tickerData.price,
         ticker,
       });
 

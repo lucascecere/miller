@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { post } from '../api';
 import StatusBadge from './StatusBadge';
-import { generateAllCharts, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
+import { generateAllCharts, chartSrc } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -30,11 +30,8 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
 
     try {
-      const iv     = ticker.iv_current || 0.20;
       const { daily, twoHour, thirtyMin } = await generateAllCharts({
         s0:     ticker.price,
-        sigma:  ticker.sigma || computeSigma(iv),
-        band:   computeBand(iv),
         ticker: ticker.symbol,
       });
 
