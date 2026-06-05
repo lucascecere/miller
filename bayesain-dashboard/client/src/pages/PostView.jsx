@@ -11,6 +11,7 @@ export default function PostView() {
   const { ticker } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isMobile = useIsMobile();
   const [data, setData] = useState(null);
   const [tweetText, setTweetText] = useState('');
   const [settings, setSettings] = useState({ team_members: ['Luke', 'Lucas'] });
@@ -86,7 +87,6 @@ export default function PostView() {
     </div>
   );
 
-  const isMobile = useIsMobile();
   const members = Array.isArray(settings.team_members) ? settings.team_members : ['Luke', 'Lucas'];
   const isHit = data.result_status === 'HIT_HIGH' || data.result_status === 'HIT_LOW';
 
