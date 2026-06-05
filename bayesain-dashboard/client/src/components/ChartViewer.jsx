@@ -3,13 +3,20 @@ import { get, post } from '../api';
 import { generateAllCharts, chartSrc, computeBand, computeSigma } from '../utils/generateChart';
 import ChartLightbox from './ChartLightbox';
 
+const TABS = [
+  { id: 'daily',  label: 'Daily'  },
+  { id: '2hr',    label: '2-Hour' },
+  { id: '30min',  label: '30-Min' },
+];
+
 export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
-  const [chart, setChart] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [chart, setChart]               = useState(null);
+  const [activeTab, setActiveTab]       = useState('2hr');
+  const [loading, setLoading]           = useState(true);
   const [regenerating, setRegenerating] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [lightbox, setLightbox] = useState(null);
-  const [error, setError] = useState('');
+  const [elapsed, setElapsed]           = useState(0);
+  const [lightbox, setLightbox]         = useState(null);
+  const [error, setError]               = useState('');
 
   async function loadChart() {
     try {
@@ -24,46 +31,71 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
 
   useEffect(() => { loadChart(); }, [ticker]);
 
+  function srcForTab(tab) {
+    if (!chart) return null;
+    if (tab === 'daily')  return chartSrc(chart.path2d);
+    if (tab === '2hr')    return chartSrc(chart.path2hr);
+    if (tab === '30min')  return chartSrc(chart.path30min);
+    return null;
+  }
+
   function handleDownload() {
-    const src = chartSrc(chart?.path2d);
+    const src = srcForTab(activeTab);
     if (!src) return;
     const a = document.createElement('a');
-    a.href = src;
-    a.download = `${ticker}-PPL-chart.jpg`;
+    a.href     = src;
+    a.download = `${ticker}-PPL-${activeTab}.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }
 
   async function handleRegenerate() {
-    if (!tickerData?.price) return setError('No price data — go back and run Refresh Prices first');
+    if (!tickerData?.price) return setError('No price data — run Refresh Prices first');
     setRegenerating(true);
     setError('');
     setElapsed(0);
 
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
     try {
-      const iv = tickerData.ivCurrent || 0.20;
-      const [daily] = await generateAllCharts({
+      const iv = tickerData.ivCurrent || tickerData.iv_current || 0.20;
+      const { daily, twoHour, thirtyMin } = await generateAllCharts({
         s0:    tickerData.price,
         sigma: tickerData.sigma || computeSigma(iv),
         band:  computeBand(iv),
         ticker,
       });
 
-      const result = await post(`/api/charts/upload/${ticker}`, {
-        chartData2d: daily.data2d,
-        chartData3d: daily.data3d,
-        upPct:       daily.upPct,
-        timeframe:   'daily',
-        pplLow:      daily.pplLow,
-        pplMode:     daily.pplMode,
-        pplHigh:     daily.pplHigh,
-      });
+      // Upload all 3 timeframes in parallel; 2hr is the primary PPL source
+      await Promise.all([
+        post(`/api/charts/upload/${ticker}`, {
+          chartData2d: daily.data2d,
+          chartData3d: daily.data3d,
+          upPct:       daily.upPct,
+          timeframe:   'daily',
+          pplLow:      daily.pplLow,
+          pplMode:     daily.pplMode,
+          pplHigh:     daily.pplHigh,
+        }),
+        post(`/api/charts/upload/${ticker}`, {
+          chartData2d: twoHour.data2d,
+          upPct:       twoHour.upPct,
+          timeframe:   '2hr',
+          pplLow:      twoHour.pplLow,
+          pplMode:     twoHour.pplMode,
+          pplHigh:     twoHour.pplHigh,
+        }),
+        post(`/api/charts/upload/${ticker}`, {
+          chartData2d: thirtyMin.data2d,
+          upPct:       thirtyMin.upPct,
+          timeframe:   '30min',
+          pplLow:      thirtyMin.pplLow,
+          pplMode:     thirtyMin.pplMode,
+          pplHigh:     thirtyMin.pplHigh,
+        }),
+      ]);
 
-      setChart(prev => ({ ...prev, path2d: result.path2d, path3d: result.path3d }));
-
-      // Tell PostView to reload data so tweet templates + PPL levels stay in sync
+      await loadChart();
       if (onRegenerated) onRegenerated();
     } catch (err) {
       setError(err.message);
@@ -74,7 +106,7 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
     }
   }
 
-  const currentSrc = chartSrc(chart?.path2d);
+  const currentSrc = srcForTab(activeTab);
 
   const containerStyle = {
     background: '#0c0e17', border: '1px solid rgba(255,255,255,0.1)',
@@ -91,6 +123,35 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       {lightbox && <ChartLightbox src={lightbox} onClose={() => setLightbox(null)} />}
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {TABS.map(tab => {
+          const active = activeTab === tab.id;
+          const hasSrc = !!srcForTab(tab.id);
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                fontFamily: 'monospace', fontSize: '0.7rem',
+                padding: '4px 10px', borderRadius: '5px', cursor: 'pointer',
+                border: active ? '1px solid #7DF9FF' : '1px solid rgba(255,255,255,0.15)',
+                color: active ? '#7DF9FF' : hasSrc ? '#c8cad8' : '#6b6e85',
+                background: active ? 'rgba(125,249,255,0.08)' : 'transparent',
+                transition: 'all 0.15s',
+              }}
+            >
+              {tab.label}
+              {tab.id === '2hr' && (
+                <span style={{ marginLeft: '4px', fontSize: '0.55rem', color: active ? '#7DF9FF' : '#6b6e85' }}>
+                  +30m
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <div style={containerStyle}>
         {currentSrc ? (
           <img
@@ -102,7 +163,7 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
         ) : (
           <div style={{ height: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             <span style={{ color: '#6b6e85', fontFamily: 'monospace', fontSize: '0.875rem' }}>No chart yet for today</span>
-            <span style={{ color: '#6b6e85', fontFamily: 'monospace', fontSize: '0.75rem' }}>Click Generate (~10 seconds)</span>
+            <span style={{ color: '#6b6e85', fontFamily: 'monospace', fontSize: '0.75rem' }}>Click Generate (~30 seconds)</span>
           </div>
         )}
 

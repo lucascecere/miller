@@ -12,46 +12,76 @@ const TIMEFRAME_CONFIG = {
   '30min':{ stepsPerDay: 13,   horizonDays: 2,   label: '30-Min' },
 };
 
-// Replaces the random stdevLines section in bayesain.html's draw() with code
-// that draws the actual PPL levels (triLow/triMode/triHigh from syncTri).
-// Runs inside draw() so it has direct access to ctx, toY, marginL, pw, yMin, yMax.
-const PPL_DRAW_CODE = `
-  const _triLow  = parseFloat(document.getElementById('triLow').value)  || s0 * 0.93;
-  const _triMode = parseFloat(document.getElementById('triMode').value) || s0;
-  const _triHigh = parseFloat(document.getElementById('triHigh').value) || s0 * 1.07;
-  const stdevLines = [
-    { v: _triHigh, label: 'PPL-H', col: '#00FF41' },
-    { v: _triMode, label: 'PPL-M', col: '#fbbf24' },
-    { v: _triLow,  label: 'PPL-L', col: '#FF2020' },
-  ];
-  const _pplEndX = marginL + pw * 1.12;
-  stdevLines.forEach(({ v, label, col }) => {
-    if (v < yMin || v > yMax) return;
-    const y = toY(v);
-    ctx.setLineDash([10, 5]);
+// After generating the 2hr chart, overlay the 30min stdev band lines as dashed lines.
+// Both sets of lines use price-based y-coordinates, so a single price scale works.
+async function add30minOverlay(twoHourResult, thirtyMinResult) {
+  if (!twoHourResult?.data2d) return twoHourResult;
+  if (!thirtyMinResult?.frozenLines?.length) return twoHourResult;
+
+  const { yMin, yMax, W, H, dpr, marginL, marginT, pw, ph } = twoHourResult;
+  if (!W || !H || !dpr) return twoHourResult;
+
+  const toY      = v => marginT + (1 - (v - yMin) / (yMax - yMin)) * ph;
+  const lineEndX = marginL + pw * 1.12;
+
+  const img = new Image();
+  img.src = twoHourResult.data2d;
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d');
+
+  // Draw the existing 2hr chart at full pixel size
+  ctx.drawImage(img, 0, 0);
+
+  // Scale subsequent drawing to CSS coordinates
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  const colors = ['#7DF9FF', '#7DF9FF', '#ff8c00', '#ff8c00'];
+  thirtyMinResult.frozenLines.forEach((line, i) => {
+    const y = toY(line.v);
+    if (y < marginT - 2 || y > marginT + ph + 2) return;
+
+    const col = colors[i] || '#c8cad8';
+
     ctx.strokeStyle = col;
-    ctx.lineWidth = 2;
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.globalAlpha = 0.7;
     ctx.beginPath();
     ctx.moveTo(marginL, y);
-    ctx.lineTo(_pplEndX, y);
+    ctx.lineTo(lineEndX, y);
     ctx.stroke();
+
     ctx.setLineDash([]);
-    ctx.font = 'bold 13px IBM Plex Mono, monospace';
+    ctx.globalAlpha = 0.9;
+
+    const label = '30m $' + line.v.toFixed(2);
+    ctx.font = 'bold 11px IBM Plex Mono, monospace';
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.fillRect(lineEndX + 3, y - 9, tw + 6, 18);
     ctx.fillStyle = col;
-    ctx.textAlign = 'left';
+    ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label + '  $' + v.toFixed(2), _pplEndX + 5, y);
-    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(label, lineEndX + 6, y);
   });
-  ctx.setLineDash([]);
 
+  ctx.globalAlpha = 1.0;
+  ctx.restore();
 
-`;
+  const newData2d = canvas.toDataURL('image/jpeg', 0.9);
+  return { ...twoHourResult, data2d: newData2d };
+}
 
+// Generates one timeframe chart. Returns chart image data plus frozenLines (the
+// stdev band values bayesain.html draws) — those band values are the PPL levels.
 export async function generateChartInBrowser({
   s0, sigma, band,
   ticker = '', timeframe = 'daily', paths = 120,
-  pplLow: pplLowIn = null, pplMode: pplModeIn = null, pplHigh: pplHighIn = null,
 }) {
   const cfg         = TIMEFRAME_CONFIG[timeframe] || TIMEFRAME_CONFIG.daily;
   const steps       = Math.round(cfg.stepsPerDay * cfg.horizonDays);
@@ -60,19 +90,11 @@ export async function generateChartInBrowser({
   const today      = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const annotation = [`$${ticker}`, today, cfg.label].filter(Boolean).join('   ');
 
-  const res = await fetch('/bayesain.html');
-  let html  = await res.text();
+  const res  = await fetch('/bayesain.html');
+  let html   = await res.text();
 
-  // Prevent auto-run on load
+  // Prevent auto-run — we trigger run() manually after setting all inputs
   html = html.replace(/syncTri\(\);\s*[\s\S]*?run\(\);/, 'syncTri();');
-
-  // Replace the random stdevLines section with actual PPL level lines.
-  // The regex matches from "let stdevLines;" through the closing setLineDash
-  // and the blank lines that follow — the rest of draw() is untouched.
-  html = html.replace(
-    /  let stdevLines;[\s\S]*?  ctx\.setLineDash\(\[\]\);\n\n\n/,
-    () => PPL_DRAW_CODE
-  );
 
   const blob    = new Blob([html], { type: 'text/html' });
   const blobUrl = URL.createObjectURL(blob);
@@ -95,17 +117,11 @@ export async function generateChartInBrowser({
         const doc = iframe.contentDocument;
         const win = iframe.contentWindow;
 
-        // Set s0 — triggers syncTri() which sets triLow/triMode/triHigh
         const s0El = doc.getElementById('s0');
         s0El.value = s0;
         s0El.dispatchEvent(new Event('input', { bubbles: true }));
 
-        // Read PPL values from the HTML after syncTri fires — source of truth
-        const pplLow  = pplLowIn  != null ? pplLowIn  : parseFloat(doc.getElementById('triLow').value);
-        const pplMode = pplModeIn != null ? pplModeIn : parseFloat(doc.getElementById('triMode').value);
-        const pplHigh = pplHighIn != null ? pplHighIn : parseFloat(doc.getElementById('triHigh').value);
-
-        // bayesain.html sigma = annualized vol; scaledSigma is per-step, convert back
+        // sigma input expects annualized vol; scaledSigma is per-step, convert back
         doc.getElementById('sigma').value  = scaledSigma * Math.sqrt(steps);
         if (band != null) doc.getElementById('bandMult').value = band;
         doc.getElementById('nPaths').value = paths;
@@ -139,8 +155,47 @@ export async function generateChartInBrowser({
               ? Math.round((finals.filter(f => f >= s0).length / finals.length) * 100)
               : null;
 
+            // Read the frozen stdev band lines — these are the PPL levels Luke reads off the chart
+            const args        = win._lastDrawArgs;
+            const frozenLines = args?.[11] || null;
+
+            // Compute y-scale info needed for overlay drawing later
+            let yMin = Infinity, yMax = -Infinity;
+            const allPaths = args?.[0] || [];
+            allPaths.forEach(path => path.forEach(v => {
+              if (v < yMin) yMin = v;
+              if (v > yMax) yMax = v;
+            }));
+            yMin = Math.min(yMin, s0);
+            yMax = Math.max(yMax, s0);
+            if (frozenLines) frozenLines.forEach(fl => {
+              yMin = Math.min(yMin, fl.v);
+              yMax = Math.max(yMax, fl.v);
+            });
+            const pad = (yMax - yMin) * 0.06;
+            yMin -= pad;
+            yMax += pad;
+
+            const dpr  = win.devicePixelRatio || 1;
+            const W    = canvas2d ? canvas2d.width  / dpr : 1200;
+            const H    = canvas2d ? canvas2d.height / dpr : 700;
+            const marginL = 72, marginT = 20, marginB = 44;
+            const marginR = W - marginL - Math.floor((W - marginL - 8) * 0.81);
+            const pw      = (W - marginL - marginR) * 0.77;
+            const ph      = H - marginT - marginB;
+
+            // Map frozenLines to named PPL values (0=outer high, 1=inner high, 2=inner low, 3=outer low)
+            const pplHigh = frozenLines?.[0]?.v ?? null;
+            const pplLow  = frozenLines?.[3]?.v ?? null;
+            const pplMode = parseFloat(doc.getElementById('triMode')?.value) || s0;
+
             cleanup();
-            resolve({ data2d, data3d, upPct, timeframe, pplLow, pplMode, pplHigh });
+            resolve({
+              data2d, data3d, upPct, timeframe,
+              frozenLines, pplHigh, pplLow, pplMode,
+              // Y-scale info for add30minOverlay
+              yMin, yMax, W, H, dpr, marginL, marginT, marginB, marginR, pw, ph,
+            });
           } catch (err) { cleanup(); reject(err); }
         }, 9500);
       } catch (err) { clearTimeout(timeout); cleanup(); reject(err); }
@@ -150,9 +205,19 @@ export async function generateChartInBrowser({
   });
 }
 
+// Generates all 3 timeframes. The 2hr chart gets the 30min stdev bands overlaid
+// so a single chart shows both timeframe perspectives — that combined chart is
+// what gets posted.
 export async function generateAllCharts({ s0, sigma, band, ticker }) {
-  const daily = await generateChartInBrowser({ s0, sigma, band, ticker, timeframe: 'daily' });
-  return [daily];
+  const [daily, twoHour_raw, thirtyMin] = await Promise.all([
+    generateChartInBrowser({ s0, sigma, band, ticker, timeframe: 'daily'  }),
+    generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '2hr'    }),
+    generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '30min'  }),
+  ]);
+
+  const twoHour = await add30minOverlay(twoHour_raw, thirtyMin);
+
+  return { daily, twoHour, thirtyMin };
 }
 
 export function chartSrc(path) {

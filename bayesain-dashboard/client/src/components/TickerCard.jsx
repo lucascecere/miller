@@ -29,24 +29,30 @@ export default function TickerCard({ ticker, onChartGenerated }) {
 
     try {
       const iv     = ticker.iv_current || 0.20;
-      const charts = await generateAllCharts({
+      const { daily, twoHour, thirtyMin } = await generateAllCharts({
         s0:     ticker.price,
         sigma:  ticker.sigma || computeSigma(iv),
         band:   computeBand(iv),
         ticker: ticker.symbol,
       });
 
-      for (const c of charts) {
-        await post(`/api/charts/upload/${ticker.symbol}`, {
-          chartData2d: c.data2d,
-          chartData3d: c.data3d,
-          upPct:       c.upPct,
-          timeframe:   c.timeframe,
-          pplLow:      c.pplLow,
-          pplMode:     c.pplMode,
-          pplHigh:     c.pplHigh,
-        });
-      }
+      await Promise.all([
+        post(`/api/charts/upload/${ticker.symbol}`, {
+          chartData2d: daily.data2d, chartData3d: daily.data3d,
+          upPct: daily.upPct, timeframe: 'daily',
+          pplLow: daily.pplLow, pplMode: daily.pplMode, pplHigh: daily.pplHigh,
+        }),
+        post(`/api/charts/upload/${ticker.symbol}`, {
+          chartData2d: twoHour.data2d,
+          upPct: twoHour.upPct, timeframe: '2hr',
+          pplLow: twoHour.pplLow, pplMode: twoHour.pplMode, pplHigh: twoHour.pplHigh,
+        }),
+        post(`/api/charts/upload/${ticker.symbol}`, {
+          chartData2d: thirtyMin.data2d,
+          upPct: thirtyMin.upPct, timeframe: '30min',
+          pplLow: thirtyMin.pplLow, pplMode: thirtyMin.pplMode, pplHigh: thirtyMin.pplHigh,
+        }),
+      ]);
 
       if (onChartGenerated) onChartGenerated();
     } catch (err) {

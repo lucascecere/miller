@@ -63,9 +63,9 @@ router.post('/upload/:symbol', async (req, res) => {
         .eq('symbol', symbol).eq('date', today).eq('status', 'draft');
     }
 
-    // On every daily chart upload, write the PPL values from bayesain.html back to
-    // ticker_data and regenerate the post tweet_text — bayesain.html is the source of truth.
-    if (timeframe === 'daily') {
+    // On 2hr (primary) or daily chart upload, write PPL values from bayesain.html
+    // back to ticker_data and regenerate tweet_text — the simulation bands are the source of truth.
+    if (timeframe === '2hr' || timeframe === 'daily') {
       const tdUpdate = {};
       if (upPct !== undefined && upPct !== null) tdUpdate.up_pct = upPct;
       if (pplLow  != null) tdUpdate.ppl_low  = pplLow;
