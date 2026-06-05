@@ -71,7 +71,7 @@ export async function generateChartInBrowser({
   // and the blank lines that follow — the rest of draw() is untouched.
   html = html.replace(
     /  let stdevLines;[\s\S]*?  ctx\.setLineDash\(\[\]\);\n\n\n/,
-    PPL_DRAW_CODE
+    () => PPL_DRAW_CODE
   );
 
   const blob    = new Blob([html], { type: 'text/html' });
