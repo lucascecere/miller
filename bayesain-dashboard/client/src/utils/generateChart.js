@@ -12,20 +12,23 @@ const TIMEFRAME_CONFIG = {
   '30min':{ stepsPerDay: 13,   horizonDays: 2,   label: '30-Min' },
 };
 
-// After generating the 2hr chart, overlay the 30min stdev band lines as dashed lines.
-// Both sets of lines use price-based y-coordinates, so a single price scale works.
-async function add30minOverlay(twoHourResult, thirtyMinResult) {
-  if (!twoHourResult?.data2d) return twoHourResult;
-  if (!thirtyMinResult?.frozenLines?.length) return twoHourResult;
+// Overlay another timeframe's stdev bands onto a base chart as dashed lines.
+// baseResult  — the chart to draw on (provides image + y-scale)
+// overlayResult — the simulation whose frozenLines get drawn
+// prefix — label prefix shown on each line (e.g. '2H' or '30m')
+// highColor / lowColor — line colors for resistance and support bands
+async function addTimeframeOverlay(baseResult, overlayResult, prefix, highColor, lowColor) {
+  if (!baseResult?.data2d) return baseResult;
+  if (!overlayResult?.frozenLines?.length) return baseResult;
 
-  const { yMin, yMax, W, H, dpr, marginL, marginT, pw, ph } = twoHourResult;
-  if (!W || !H || !dpr) return twoHourResult;
+  const { yMin, yMax, W, H, dpr, marginL, marginT, pw, ph } = baseResult;
+  if (!W || !H || !dpr) return baseResult;
 
   const toY      = v => marginT + (1 - (v - yMin) / (yMax - yMin)) * ph;
   const lineEndX = marginL + pw * 1.12;
 
   const img = new Image();
-  img.src = twoHourResult.data2d;
+  img.src = baseResult.data2d;
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
 
   const canvas = document.createElement('canvas');
@@ -33,15 +36,12 @@ async function add30minOverlay(twoHourResult, thirtyMinResult) {
   canvas.height = img.height;
   const ctx = canvas.getContext('2d');
 
-  // Draw the existing 2hr chart at full pixel size
   ctx.drawImage(img, 0, 0);
-
-  // Scale subsequent drawing to CSS coordinates
   ctx.save();
   ctx.scale(dpr, dpr);
 
-  const colors = ['#7DF9FF', '#7DF9FF', '#ff8c00', '#ff8c00'];
-  thirtyMinResult.frozenLines.forEach((line, i) => {
+  const colors = [highColor, highColor, lowColor, lowColor];
+  overlayResult.frozenLines.forEach((line, i) => {
     const y = toY(line.v);
     if (y < marginT - 2 || y > marginT + ph + 2) return;
 
@@ -59,7 +59,7 @@ async function add30minOverlay(twoHourResult, thirtyMinResult) {
     ctx.setLineDash([]);
     ctx.globalAlpha = 0.9;
 
-    const label = '30m $' + line.v.toFixed(2);
+    const label = prefix + ' $' + line.v.toFixed(2);
     ctx.font = 'bold 11px IBM Plex Mono, monospace';
     const tw = ctx.measureText(label).width;
     ctx.fillStyle = 'rgba(0,0,0,0.75)';
@@ -74,7 +74,7 @@ async function add30minOverlay(twoHourResult, thirtyMinResult) {
   ctx.restore();
 
   const newData2d = canvas.toDataURL('image/jpeg', 0.9);
-  return { ...twoHourResult, data2d: newData2d };
+  return { ...baseResult, data2d: newData2d };
 }
 
 // Generates one timeframe chart. Returns chart image data plus frozenLines (the
@@ -215,7 +215,12 @@ export async function generateAllCharts({ s0, sigma, band, ticker }) {
     generateChartInBrowser({ s0, sigma, band, ticker, timeframe: '30min'  }),
   ]);
 
-  return { daily, twoHour: twoHour_raw, thirtyMin };
+  // Daily chart shows both 2hr and 30min bands overlaid for full context
+  // 2hr = purple, 30min = cyan/orange so they're visually distinct
+  const dailyWith2hr  = await addTimeframeOverlay(daily,        twoHour_raw, '2H',  '#c084fc', '#f472b6');
+  const dailyWithBoth = await addTimeframeOverlay(dailyWith2hr, thirtyMin,   '30m', '#7DF9FF', '#ff8c00');
+
+  return { daily: dailyWithBoth, twoHour: twoHour_raw, thirtyMin };
 }
 
 export function chartSrc(path) {
