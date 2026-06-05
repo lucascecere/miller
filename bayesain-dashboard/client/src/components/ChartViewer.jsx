@@ -56,10 +56,8 @@ export default function ChartViewer({ ticker, tickerData, onRegenerated }) {
 
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
     try {
-      const iv = tickerData?.iv_current || tickerData?.ivCurrent || 0.30;
       const { twoHour, thirtyMin } = await generateAllCharts({
-        s0: tickerData.price,
-        iv,
+        s0: tickerData?.price,
         ticker,
       });
 

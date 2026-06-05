@@ -102,8 +102,21 @@ export async function generateChartInBrowser({ s0, iv, ticker = '', timeframe = 
   });
 }
 
-// Generates 2hr and 30min charts in parallel. iv = annualized implied volatility (e.g. 0.96).
-export async function generateAllCharts({ s0, iv = 0.20, ticker }) {
+// Always fetches live IV from the server right before generating so bands match the stock's
+// actual implied volatility — never relies on stale DB data.
+export async function generateAllCharts({ ticker, s0: fallbackS0 }) {
+  // Fetch live price + IV for this specific ticker
+  let s0 = fallbackS0;
+  let iv = 0.20;
+  try {
+    const res  = await fetch(`/api/tickers/${encodeURIComponent(ticker)}/iv`);
+    const data = await res.json();
+    if (data.iv  != null) iv  = data.iv;
+    if (data.price != null) s0 = data.price;
+  } catch (e) {
+    console.warn(`IV fetch failed for ${ticker}, using fallback`);
+  }
+
   const [twoHour, thirtyMin] = await Promise.all([
     generateChartInBrowser({ s0, iv, ticker, timeframe: '2hr'   }),
     generateChartInBrowser({ s0, iv, ticker, timeframe: '30min' }),

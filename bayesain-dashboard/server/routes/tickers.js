@@ -53,6 +53,18 @@ router.delete('/:symbol', async (req, res) => {
   }
 });
 
+// Returns live price + IV for a single symbol — called by the client right before chart generation
+router.get('/:symbol/iv', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await fetchTickerData(symbol.toUpperCase());
+    res.json({ symbol: symbol.toUpperCase(), price: data.price, iv: data.ivCurrent });
+  } catch (err) {
+    console.error(`IV fetch failed for ${req.params.symbol}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/refresh', async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const { data: tickers, error: tickerErr } = await supabase.from('tickers').select('*');

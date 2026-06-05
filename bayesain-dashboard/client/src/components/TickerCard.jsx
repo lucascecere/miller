@@ -30,10 +30,8 @@ export default function TickerCard({ ticker, onChartGenerated }) {
     const timer = setInterval(() => setElapsed(s => s + 1), 1000);
 
     try {
-      const iv = ticker.iv_current || 0.30;
       const { twoHour, thirtyMin } = await generateAllCharts({
         s0:     ticker.price,
-        iv,
         ticker: ticker.symbol,
       });
 
