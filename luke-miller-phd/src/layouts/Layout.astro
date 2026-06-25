@@ -34,6 +34,15 @@ const ogTitle = title.includes('Luke Miller') ? title : title + suffix;
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2W0FBKE06H"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-2W0FBKE06H');
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
@@ -52,6 +61,7 @@ const ogTitle = title.includes('Luke Miller') ? title : title + suffix;
     <meta property="og:title" content={ogTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageURL.toString()} />
+    <meta property="og:image:alt" content={ogTitle} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
@@ -79,17 +89,17 @@ const ogTitle = title.includes('Luke Miller') ? title : title + suffix;
             "headline": title,
             "description": description,
             "url": canonicalURL.toString(),
-            "author": { "@id": "https://lukemillerphd.org/#person" },
-            "publisher": { "@id": "https://lukemillerphd.org/#person" },
+            "author": { "@id": "https://lukemillerphd.com/#person" },
+            "publisher": { "@id": "https://lukemillerphd.com/#person" },
             ...(publishedDate ? { "datePublished": publishedDate.toISOString() } : {}),
             "inLanguage": "en-US",
-            "isPartOf": { "@id": "https://lukemillerphd.org/#website" }
+            "isPartOf": { "@id": "https://lukemillerphd.com/#website" }
           },
           {
             "@type": "BreadcrumbList",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://lukemillerphd.org" },
-              { "@type": "ListItem", "position": 2, "name": "Research", "item": "https://lukemillerphd.org/research" },
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://lukemillerphd.com" },
+              { "@type": "ListItem", "position": 2, "name": "Research", "item": "https://lukemillerphd.com/research" },
               { "@type": "ListItem", "position": 3, "name": title, "item": canonicalURL.toString() }
             ]
           }
@@ -101,7 +111,7 @@ const ogTitle = title.includes('Luke Miller') ? title : title + suffix;
         "@graph": [
           {
             "@type": "Person",
-            "@id": "https://lukemillerphd.org/#person",
+            "@id": "https://lukemillerphd.com/#person",
             "name": "Luke Miller",
             "givenName": "Luke",
             "familyName": "Miller",
@@ -118,17 +128,35 @@ const ogTitle = title.includes('Luke Miller') ? title : title + suffix;
             ],
             "award": "Gilbreth Memorial Fellowship — top doctoral student nationally",
             "knowsAbout": ["Bayesian inference", "real options valuation", "capital budgeting", "financial engineering", "investment under uncertainty"],
-            "url": "https://lukemillerphd.org",
-            "image": "https://lukemillerphd.org/Luke-Miller.png",
-            "sameAs": []
+            "url": "https://lukemillerphd.com",
+            "image": "https://lukemillerphd.com/Luke-Miller.png",
+            "sameAs": [
+              "https://www.linkedin.com/in/luke-miller-16448b5/",
+              "https://www.researchgate.net/scientific-contributions/Luke-T-Miller-71805941",
+              "https://www.anselm.edu/about/campus-directory/luke-miller",
+              "https://www.elliottwavetrader.net/analyst/Luke-Miller"
+            ],
+            "author": [{ "@id": "https://lukemillerphd.com/#book" }]
           },
           {
             "@type": "WebSite",
-            "@id": "https://lukemillerphd.org/#website",
-            "url": "https://lukemillerphd.org",
+            "@id": "https://lukemillerphd.com/#website",
+            "url": "https://lukemillerphd.com",
             "name": "Luke Miller, PhD",
             "description": "Academic website of Luke Miller, Associate Professor of Finance at Saint Anselm College",
-            "publisher": { "@id": "https://lukemillerphd.org/#person" }
+            "publisher": { "@id": "https://lukemillerphd.com/#person" }
+          },
+          {
+            "@type": "Book",
+            "@id": "https://lukemillerphd.com/#book",
+            "name": "Development of a Bayesian Real Options Framework: And Its Application to Capital Budgeting Problems",
+            "author": { "@id": "https://lukemillerphd.com/#person" },
+            "publisher": { "@type": "Organization", "name": "VDM Verlag" },
+            "datePublished": "2010",
+            "isbn": "3639282922",
+            "url": "https://www.amazon.com/Development-Bayesian-Real-Options-Framework/dp/3639282922",
+            "inLanguage": "en-US",
+            "image": "https://lukemillerphd.com/book-cover.jpg"
           }
         ]
       })} />

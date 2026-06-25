@@ -1,0 +1,145 @@
+---
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+import VariantLayout from '@layouts/VariantLayout.astro';
+import ResearchCard from '@components/ResearchCard.astro';
+import LogoMarquee from '@components/LogoMarquee.astro';
+import headshot from '../../../public/Luke+Miller.webp';
+import { ivory } from '../../lib/variants';
+
+const allPosts = await getCollection('research', ({ data }) => !data.draft);
+const featured = allPosts
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 4);
+---
+
+<VariantLayout
+  variant="ivory"
+  styleVars={ivory.styleVars}
+  fontHead={ivory.fontHead}
+  title="Luke Miller, PhD — Finance Professor, Saint Anselm College"
+  description="Dr. Luke Miller is an Associate Professor of Finance at Saint Anselm College and creator of BayesAIn Strategies."
+>
+  <!-- Masthead -->
+  <section class="text-center max-w-3xl mx-auto pt-4 pb-12">
+    <p class="font-mono text-[11px] tracking-[0.25em] uppercase text-lm-accent mb-6">
+      Saint Anselm College &middot; Department of Economics &amp; Business
+    </p>
+    <h1 class="font-serif text-5xl sm:text-6xl font-normal text-lm-text leading-[1.05] tracking-tight mb-5">
+      Luke Miller, PhD
+    </h1>
+    <p class="font-sans italic text-xl text-lm-text-muted leading-relaxed">
+      Bayesian inference, real options valuation, and financial decision-making under uncertainty.
+    </p>
+    <div class="flex items-center justify-center gap-3 mt-8">
+      <span class="h-px w-12 bg-lm-border"></span>
+      <span class="font-mono text-[11px] tracking-[0.25em] uppercase text-lm-muted">Est. practice — 30 years</span>
+      <span class="h-px w-12 bg-lm-border"></span>
+    </div>
+  </section>
+
+  <!-- Bio + portrait -->
+  <section class="border-t border-lm-border pt-12 pb-16">
+    <div class="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-12 lg:gap-16 items-start">
+      <div class="font-sans text-[1.0625rem] leading-[1.85] text-lm-text-muted space-y-5 max-w-prose">
+        <p class="dropcap">Dr. Luke Miller is a finance professor and consultant with nearly 30 years of experience developing Bayesian learning algorithms for complex decision-making systems across a wide range of industries.</p>
+        <p>His work applies a proprietary probabilistic framework — grounded in Bayesian inference — to help organizations navigate uncertainty, evaluate risk, and improve strategic outcomes.</p>
+        <p>Dr. Miller&rsquo;s consulting practice spans a broad cross-section of industries, with particular depth in financial services. He has advised institutions such as Morningstar, Neuberger Berman, American Express, Ventas, and StanCorp Financial Group, along with numerous hedge funds, family offices, and nonprofit endowments.</p>
+        <p>He currently serves as a finance professor in the Economics &amp; Business Department at Saint Anselm College.</p>
+        <div class="flex flex-wrap gap-x-6 gap-y-2 pt-3 font-mono text-[11px] uppercase tracking-widest text-lm-muted">
+          <span>Real Options</span>
+          <span>Bayesian Methods</span>
+          <span>Financial Engineering</span>
+          <span>Capital Budgeting</span>
+        </div>
+      </div>
+
+      <figure class="mx-auto lg:mx-0 max-w-xs">
+        <div class="overflow-hidden border border-lm-border bg-lm-surface p-2 shadow-sm">
+          <Image
+            src={headshot}
+            alt="Luke Miller, PhD — Finance Professor, Saint Anselm College"
+            width={360}
+            height={420}
+            class="w-full h-auto object-cover object-top"
+            loading="eager"
+          />
+        </div>
+        <figcaption class="font-sans italic text-sm text-lm-muted mt-3 text-center lg:text-left">
+          Luke T. Miller, PhD — Associate Professor of Finance
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- As Featured In -->
+  <section class="py-10 border-t border-lm-border">
+    <p class="font-mono text-[11px] tracking-[0.25em] uppercase text-lm-muted mb-7 text-center">As Featured In</p>
+    <LogoMarquee />
+  </section>
+
+  <!-- Book -->
+  <section class="py-16 border-t border-lm-border">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div class="flex justify-center lg:justify-start">
+        <a
+          href="https://www.amazon.com/Development-Bayesian-Real-Options-Framework/dp/3639282922"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block w-48 sm:w-56 overflow-hidden border border-lm-border shadow-md hover:shadow-lg transition-shadow duration-200"
+        >
+          <img src="/book-cover.jpg" alt="Development of a Bayesian Real Options Framework book cover" width="224" height="320" class="w-full h-auto object-cover" loading="lazy" />
+        </a>
+      </div>
+      <div>
+        <p class="font-mono text-[11px] tracking-[0.25em] uppercase text-lm-accent mb-5">Published Work</p>
+        <h2 class="font-serif text-3xl sm:text-4xl font-normal text-lm-text leading-tight mb-3">
+          Development of a Bayesian Real Options Framework
+        </h2>
+        <p class="font-sans italic text-lg text-lm-text-muted mb-4">And Its Application to Capital Budgeting Problems</p>
+        <p class="font-mono text-[11px] text-lm-muted tracking-wide mb-6">VDM Verlag &middot; 2010</p>
+        <p class="font-sans text-base leading-[1.8] text-lm-text-muted mb-8">
+          A rigorous Bayesian learning framework for evaluating capital investment decisions under uncertainty. Rooted in Dr. Miller&rsquo;s doctoral research, it develops a probabilistic methodology that dynamically incorporates new information into real options valuations.
+        </p>
+        <a
+          href="https://www.amazon.com/Development-Bayesian-Real-Options-Framework/dp/3639282922"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 bg-lm-accent text-white font-sans text-sm font-medium px-6 py-3 hover:opacity-90 transition-opacity"
+        >
+          View on Amazon
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research -->
+  <section class="py-12 border-t border-lm-border">
+    <p class="font-mono text-[11px] tracking-[0.25em] uppercase text-lm-accent mb-3">Research</p>
+    <h2 class="font-serif text-3xl font-normal text-lm-text mb-1">Recent Publications</h2>
+    <p class="text-base text-lm-muted font-sans italic mb-8">Working papers and peer-reviewed publications.</p>
+    <div class="flex flex-col gap-3">
+      {featured.map((post) => (
+        <ResearchCard title={post.data.title} date={post.data.date} category={post.data.category} tags={post.data.tags} summary={post.data.summary} slug={post.id} />
+      ))}
+    </div>
+    <div class="mt-8">
+      <a href="/research" class="inline-flex items-center gap-1.5 text-sm text-lm-accent hover:opacity-70 transition-opacity font-sans font-medium">
+        View all research &rarr;
+      </a>
+    </div>
+  </section>
+</VariantLayout>
+
+<style>
+  .dropcap::first-letter {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 3.4em;
+    line-height: 0.8;
+    float: left;
+    padding: 0.05em 0.12em 0 0;
+    color: var(--color-lm-accent);
+    font-weight: 500;
+  }
+</style>

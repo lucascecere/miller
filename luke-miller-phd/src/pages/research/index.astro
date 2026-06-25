@@ -19,6 +19,23 @@ const categories = [
   title="Research | Luke Miller, PhD"
   description="Research publications and working papers by Luke Miller, Associate Professor of Finance at Saint Anselm College. Topics include real options, Bayesian methods, and option pricing."
 >
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": "https://lukemillerphd.com/research/#page",
+    "name": "Research Publications — Luke Miller, PhD",
+    "description": "Peer-reviewed publications and working papers on real options, Bayesian methods, and financial engineering by Luke Miller.",
+    "url": "https://lukemillerphd.com/research/",
+    "author": { "@id": "https://lukemillerphd.com/#person" },
+    "hasPart": sorted.map(post => ({
+      "@type": "ScholarlyArticle",
+      "name": post.data.title,
+      "description": post.data.summary,
+      "url": `https://lukemillerphd.com/research/${post.id}/`,
+      "author": { "@id": "https://lukemillerphd.com/#person" },
+      "datePublished": post.data.date.toISOString()
+    }))
+  })} />
   <div class="pt-2 pb-8 border-b border-lm-border">
     <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-3">Publications</p>
     <h1 class="font-serif text-3xl font-normal text-lm-text">Research</h1>

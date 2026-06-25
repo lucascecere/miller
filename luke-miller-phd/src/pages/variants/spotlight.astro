@@ -1,0 +1,131 @@
+---
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+import SpotlightLayout from '@layouts/SpotlightLayout.astro';
+import ResearchCard from '@components/ResearchCard.astro';
+import LogoMarquee from '@components/LogoMarquee.astro';
+import headshot from '../../../public/Luke+Miller.webp';
+
+const allPosts = await getCollection('research', ({ data }) => !data.draft);
+const featured = allPosts
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 4);
+---
+
+<SpotlightLayout
+  title="Luke Miller, PhD — Finance Professor, Saint Anselm College"
+  description="Dr. Luke Miller is an Associate Professor of Finance at Saint Anselm College and creator of BayesAIn Strategies."
+>
+  <!-- Full-bleed hero: copy left, photo bleeding off the right -->
+  <section class="relative w-full grid grid-cols-1 lg:grid-cols-2 overflow-hidden" style="background:linear-gradient(135deg,#1f2f6b 0%,#2a409a 55%,#16224f 100%)">
+    <!-- Hero copy -->
+    <div class="order-2 lg:order-1 flex flex-col justify-center px-6 md:px-12 lg:pl-20 lg:pr-10 py-14 lg:py-24">
+      <div class="max-w-xl">
+        <h1 class="font-serif font-bold text-4xl sm:text-5xl lg:text-[3.4rem] leading-[1.08] tracking-tight mb-7" style="color:#F2C66B">
+          I&rsquo;m Luke Miller, professor of finance, researcher, author, and advisor.
+        </h1>
+        <p class="font-sans text-lg text-white/95 leading-relaxed mb-4">
+          I focus on Bayesian inference, real options valuation, and financial decision-making under uncertainty.
+        </p>
+        <p class="font-sans text-lg text-white/85 leading-relaxed mb-9">
+          This site brings together my academic research and resources for practitioners — peer-reviewed papers, my book, and writing on investment and risk.
+        </p>
+        <div class="flex flex-wrap items-center gap-4">
+          <a
+            href="/contact"
+            class="inline-flex items-center bg-[#F2C66B] text-[#1f2f6b] font-sans font-semibold text-sm px-6 py-3 rounded-md hover:bg-[#f6d589] transition-colors"
+          >
+            Contact me
+          </a>
+          <a
+            href="https://www.linkedin.com/in/luke-miller-16448b5/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 bg-white text-[#0A66C2] font-sans font-semibold text-sm px-4 py-2.5 rounded-full hover:bg-white/90 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.22.79 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>
+            LinkedIn
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portrait, bleeding off the right edge -->
+    <div class="order-1 lg:order-2 relative min-h-[300px] sm:min-h-[380px] lg:min-h-[78vh]">
+      <Image
+        src={headshot}
+        alt="Luke Miller, PhD — Finance Professor, Saint Anselm College"
+        width={760}
+        height={900}
+        class="absolute inset-0 w-full h-full object-cover object-top"
+        loading="eager"
+        fetchpriority="high"
+      />
+      <!-- Blend the photo's left edge into the blue panel -->
+      <div class="absolute inset-0" style="background:linear-gradient(to right,#1f2f6b 0%,rgba(31,47,107,0.35) 28%,rgba(31,47,107,0) 60%)"></div>
+    </div>
+  </section>
+
+  <!-- Light content -->
+  <div class="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-20">
+
+    <!-- As Featured In -->
+    <section class="py-12 border-b border-lm-border">
+      <p class="font-mono text-xs tracking-[0.2em] uppercase text-lm-muted mb-7 text-center">As Featured In</p>
+      <LogoMarquee />
+    </section>
+
+    <!-- Book -->
+    <section class="py-16 border-b border-lm-border">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <div class="flex justify-center lg:justify-start">
+          <a
+            href="https://www.amazon.com/Development-Bayesian-Real-Options-Framework/dp/3639282922"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block w-48 sm:w-56 overflow-hidden rounded-sm border border-lm-border shadow-md hover:shadow-lg transition-shadow duration-200"
+          >
+            <img src="/book-cover.jpg" alt="Development of a Bayesian Real Options Framework book cover" width="224" height="320" class="w-full h-auto object-cover" loading="lazy" />
+          </a>
+        </div>
+        <div>
+          <p class="font-mono text-xs tracking-[0.2em] uppercase text-lm-accent mb-4">Published Work</p>
+          <h2 class="font-serif font-semibold text-3xl text-lm-text leading-snug mb-3">
+            Development of a Bayesian Real Options Framework
+          </h2>
+          <p class="font-sans text-lg text-lm-muted mb-4">And Its Application to Capital Budgeting Problems</p>
+          <p class="font-mono text-xs text-lm-muted tracking-wide mb-6">VDM Verlag &middot; 2010</p>
+          <p class="font-sans text-base leading-relaxed text-lm-text-muted mb-8">
+            A rigorous Bayesian learning framework for evaluating capital investment decisions under uncertainty — a principled approach to investment timing, deferral, and abandonment across financial services, aerospace, and operations management.
+          </p>
+          <a
+            href="https://www.amazon.com/Development-Bayesian-Real-Options-Framework/dp/3639282922"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 bg-lm-accent text-white font-sans text-sm font-semibold px-6 py-3 rounded-md hover:opacity-90 transition-opacity"
+          >
+            View on Amazon
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Research -->
+    <section class="py-16">
+      <p class="font-mono text-xs tracking-[0.2em] uppercase text-lm-accent mb-3">Research</p>
+      <h2 class="font-serif font-semibold text-3xl text-lm-text mb-1">Recent Publications</h2>
+      <p class="text-base text-lm-muted font-sans mb-8">Working papers and peer-reviewed publications.</p>
+      <div class="flex flex-col gap-3">
+        {featured.map((post) => (
+          <ResearchCard title={post.data.title} date={post.data.date} category={post.data.category} tags={post.data.tags} summary={post.data.summary} slug={post.id} />
+        ))}
+      </div>
+      <div class="mt-8">
+        <a href="/research" class="inline-flex items-center gap-1.5 text-sm text-lm-accent hover:opacity-70 transition-opacity font-sans font-medium">
+          View all research &rarr;
+        </a>
+      </div>
+    </section>
+  </div>
+</SpotlightLayout>

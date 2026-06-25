@@ -1,0 +1,59 @@
+---
+import '@fontsource/playfair-display/400.css';
+import '@fontsource/dm-sans/400.css';
+import '../styles/global.css';
+import Footer from '@components/Footer.astro';
+import VariantSwitcher from '@components/VariantSwitcher.astro';
+import { spotlight } from '../lib/variants';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+
+const links = [
+  { href: '/research', label: 'Research' },
+  { href: '/cv',       label: 'CV' },
+  { href: '/media',    label: 'Press' },
+  { href: '/contact',  label: 'Contact' },
+];
+---
+
+<!doctype html>
+<html lang="en" style={spotlight.styleVars}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <Fragment set:html={spotlight.fontHead} />
+  </head>
+  <body class="bg-lm-bg text-lm-text font-sans min-h-screen flex flex-col">
+    <VariantSwitcher active="spotlight" />
+
+    <!-- Blue / gold nav -->
+    <header class="w-full" style="background:linear-gradient(to right,#2e4fa8,#3a5dbf,#4f78d4)">
+      <nav class="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-20 py-4 flex items-center justify-between" aria-label="Main navigation">
+        <a href="/" class="font-serif font-semibold text-lg tracking-[0.18em] uppercase text-[#F2C66B] hover:text-white transition-colors">
+          Luke Miller
+        </a>
+        <ul class="flex gap-6 text-sm font-sans font-medium" role="list">
+          {links.map(({ href, label }) => (
+            <li>
+              <a href={href} class="text-[#F2C66B] hover:text-white transition-colors">{label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </header>
+
+    <main class="flex-1 w-full">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

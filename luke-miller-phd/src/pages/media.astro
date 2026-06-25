@@ -1,16 +1,173 @@
 ---
 import Layout from '@layouts/Layout.astro';
+
+const press = [
+  {
+    outlet: 'MoneyShow',
+    type: 'Feature',
+    date: 'May 25, 2018',
+    title: 'Trading Lesson: Can We Really "Time" the Market?',
+    description: 'Luke\'s Bayesian timing methodology is highlighted as a breakthrough alternative to traditional cycles analysis — one of the few approaches capable of reliably forecasting market direction by analyzing options pricing and fund flows.',
+    url: 'https://www.moneyshow.com/articles/tebiwkly08-48667/',
+  },
+  {
+    outlet: 'AdviceTrade',
+    type: 'Press Release',
+    date: 'May 12, 2017',
+    title: 'Bayesian Timing Specialist Luke Miller Joins EWT',
+    description: 'Official press release announcing Luke\'s appointment as an analyst at ElliottWaveTrader, covering his Bayesian Learning Option Pricing (BLOP) methodology, consulting background, and international award recognition.',
+    url: 'https://www.advicetrade.com/press/Bayesian-Timing-Specialist-Luke-Miller-Joins-EWT-201705123.html',
+  },
+  {
+    outlet: 'Green Bull Research',
+    type: 'Review',
+    date: '2018',
+    title: 'Avi Gilburt\'s Elliott Wave Trader Review',
+    description: 'Independent review of the ElliottWaveTrader platform featuring Luke as the resident Bayesian timing specialist, noting his consulting work for major institutions including Morningstar, Neuberger Berman, and American Express.',
+    url: 'https://greenbullresearch.com/avi-gilburts-elliot-wave-trader-review/',
+  },
+];
+
+const presentations = [
+  {
+    outlet: 'ElliottWaveTrader / YouTube',
+    type: 'Video Presentation',
+    date: 'April 2020',
+    title: 'The Bayesian Trading Edge',
+    description: 'A full presentation of Luke\'s proprietary Bayesian methodology — how it models options pricing to determine market direction and timing, and why it outperforms traditional linear timing approaches.',
+    url: 'https://www.youtube.com/watch?v=ccgWv_z2rns',
+    icon: 'video',
+  },
+];
+
+const contributor = {
+  outlet: 'ElliottWaveTrader',
+  period: '2017 – 2023',
+  role: 'Bayesian Analysis Analyst',
+  description: 'Published 25+ market analysis pieces applying Bayesian timing signals to U.S. equity indices, energy, and metals. Luke\'s service provided probabilistic directional signals and ETF swing trade alerts to a community of thousands of subscribers.',
+  url: 'https://www.elliottwavetrader.net/news/Luke-Miller',
+};
 ---
 
 <Layout
   title="Press | Luke Miller, PhD"
-  description="Press coverage, interviews, and media appearances featuring Luke Miller, Associate Professor of Finance at Saint Anselm College."
+  description="Press coverage, media features, and published work by Luke Miller, Associate Professor of Finance at Saint Anselm College and Bayesian timing specialist."
 >
-  <div class="pt-2 pb-8 border-b border-lm-border mb-6">
+  <div class="pt-2 pb-8 border-b border-lm-border mb-10">
     <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-3">Media</p>
-    <h1 class="font-serif text-3xl font-normal text-lm-text">Press</h1>
-    <p class="text-lm-muted text-sm font-sans mt-2">Interviews, features, and media appearances.</p>
+    <h1 class="font-serif text-3xl font-normal text-lm-text">Press & Published Work</h1>
+    <p class="text-lm-muted text-sm font-sans mt-2">Features, press coverage, presentations, and published analysis.</p>
   </div>
 
-  <p class="text-sm text-lm-muted font-sans italic">Links to press coverage and recordings are being compiled and will be added shortly.</p>
+  <!-- Press & Features -->
+  <section class="mb-12">
+    <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-6">In the Press</p>
+    <div class="flex flex-col gap-3">
+      {press.map((item) => (
+        <article class="group border border-lm-border rounded-sm bg-lm-surface hover:border-lm-accent/50 transition-colors duration-200">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block px-6 py-5"
+          >
+            <div class="flex items-center gap-3 font-mono text-xs text-lm-muted tracking-wider uppercase mb-3 flex-wrap">
+              <span class="text-lm-accent">{item.outlet}</span>
+              <span aria-hidden="true">&middot;</span>
+              <span>{item.type}</span>
+              <span aria-hidden="true">&middot;</span>
+              <span>{item.date}</span>
+            </div>
+            <h2 class="font-serif text-base font-normal text-lm-text mb-2 group-hover:text-lm-accent transition-colors duration-150">
+              {item.title}
+            </h2>
+            <p class="text-sm text-lm-muted font-sans leading-relaxed line-clamp-2">
+              {item.description}
+            </p>
+            <span class="inline-flex items-center gap-1 mt-3 font-mono text-xs text-lm-accent">
+              Read &rarr;
+            </span>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- Video Presentations -->
+  <section class="mb-12">
+    <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-6">Presentations</p>
+    <div class="flex flex-col gap-3">
+      {presentations.map((item) => (
+        <article class="group border border-lm-border rounded-sm bg-lm-surface hover:border-lm-accent/50 transition-colors duration-200">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block px-6 py-5"
+          >
+            <div class="flex items-center gap-3 font-mono text-xs text-lm-muted tracking-wider uppercase mb-3 flex-wrap">
+              <span class="text-lm-accent">{item.outlet}</span>
+              <span aria-hidden="true">&middot;</span>
+              <span>{item.type}</span>
+              <span aria-hidden="true">&middot;</span>
+              <span>{item.date}</span>
+            </div>
+            <h2 class="font-serif text-base font-normal text-lm-text mb-2 group-hover:text-lm-accent transition-colors duration-150">
+              {item.title}
+            </h2>
+            <p class="text-sm text-lm-muted font-sans leading-relaxed line-clamp-2">
+              {item.description}
+            </p>
+            <span class="inline-flex items-center gap-1.5 mt-3 font-mono text-xs text-lm-accent">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch
+            </span>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- Ongoing Contributor -->
+  <section class="mb-12">
+    <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-6">Published Analysis</p>
+    <div class="border border-lm-border rounded-sm bg-lm-surface p-6">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-3 font-mono text-xs text-lm-muted tracking-wider uppercase mb-3 flex-wrap">
+            <span class="text-lm-accent">{contributor.outlet}</span>
+            <span aria-hidden="true">&middot;</span>
+            <span>{contributor.role}</span>
+            <span aria-hidden="true">&middot;</span>
+            <span>{contributor.period}</span>
+          </div>
+          <p class="text-sm text-lm-muted font-sans leading-relaxed mb-4">
+            {contributor.description}
+          </p>
+          <a
+            href={contributor.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 font-mono text-xs text-lm-accent hover:underline"
+          >
+            View all articles &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Media Inquiries -->
+  <section class="border-t border-lm-border pt-8">
+    <p class="font-mono text-xs tracking-widest uppercase text-lm-muted mb-3">Media Inquiries</p>
+    <p class="text-sm text-lm-muted font-sans leading-relaxed mb-4">
+      For interview requests, speaking engagements, or media inquiries, please reach out directly.
+    </p>
+    <a
+      href="/contact"
+      class="inline-flex items-center gap-2 bg-lm-accent text-white font-sans text-sm font-medium px-5 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
+    >
+      Get in Touch &rarr;
+    </a>
+  </section>
 </Layout>

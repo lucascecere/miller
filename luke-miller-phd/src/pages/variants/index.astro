@@ -1,0 +1,36 @@
+---
+import VariantLayout from '@layouts/VariantLayout.astro';
+import { quant } from '../../lib/variants';
+
+const options = [
+  { href: '/',                    label: 'Current',   desc: 'The live site as it stands today — dark, blue accent.' },
+  { href: '/variants/ivory',      label: 'Ivory',     desc: 'Warm light editorial / academic-journal feel. Fraunces + Newsreader, crimson accent.' },
+  { href: '/variants/spotlight',  label: 'Spotlight', desc: 'Bold thought-leader look (Alex Edmans style). Blue + gold, full-bleed photo hero, gold headline.' },
+  { href: '/variants/quant',      label: 'Quant',     desc: 'Elevated take on the current dark look. Cyan accent, stat strip, data motif.' },
+];
+---
+
+<VariantLayout
+  variant="quant"
+  styleVars={quant.styleVars}
+  title="Homepage Variants — Luke Miller, PhD"
+  description="Preview homepage design directions."
+>
+  <section class="max-w-2xl pt-4 pb-10">
+    <p class="font-mono text-xs tracking-[0.2em] uppercase text-lm-cyan mb-3">Preview</p>
+    <h1 class="font-serif text-4xl font-normal text-lm-text mb-3">Homepage directions</h1>
+    <p class="font-sans text-base text-lm-text-muted leading-relaxed">
+      Three directions to compare against the current site. Open each, then use the switcher bar at the top to flip between them.
+    </p>
+  </section>
+
+  <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {options.map((o) => (
+      <a href={o.href} class="block border border-lm-border rounded-sm bg-lm-surface px-6 py-5 hover:border-lm-cyan/60 transition-colors">
+        <h2 class="font-serif text-xl text-lm-text mb-1.5">{o.label}</h2>
+        <p class="font-sans text-sm text-lm-text-muted leading-relaxed">{o.desc}</p>
+        <span class="inline-block mt-4 font-mono text-xs text-lm-cyan">Open &rarr;</span>
+      </a>
+    ))}
+  </section>
+</VariantLayout>
